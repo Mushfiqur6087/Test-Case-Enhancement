@@ -1,0 +1,320 @@
+{
+  "project_url": "http://localhost:8080",
+  "captured_at": "2026-02-23T11:25:16.044866",
+  "roles_explored": [
+    "admin"
+  ],
+  "navigation_graph": {
+    "nodes": [
+      {
+        "identity_key": "(public)/",
+        "state": "visited",
+        "urls": [],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/dashboard",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/dashboard"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/",
+        "state": "undiscovered",
+        "urls": [],
+        "title": ""
+      },
+      {
+        "identity_key": "(admin)/open-account",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/open-account"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/transfer",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/transfer"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/bill-pay",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/bill-pay"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/loan",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/loan"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/profile",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/profile"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/cards",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/cards"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/investments",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/investments"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/statements",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/statements"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/security",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/security"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/support",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/support"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/account/12345001",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/account/12345001"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/account/12345002",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/account/12345002"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/account/12345003",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/account/12345003"
+        ],
+        "title": "online-banking-suite"
+      },
+      {
+        "identity_key": "(admin)/account/12345004",
+        "state": "visited",
+        "urls": [
+          "http://localhost:8080/account/12345004"
+        ],
+        "title": "online-banking-suite"
+      }
+    ],
+    "edges": [
+      {
+        "source": "(admin)/",
+        "target": "(admin)/dashboard",
+        "action": "Navigated from http://localhost:8080/"
+      },
+      {
+        "source": "(admin)/dashboard",
+        "target": "(admin)/open-account",
+        "action": "Navigated from http://localhost:8080/dashboard"
+      },
+      {
+        "source": "(admin)/open-account",
+        "target": "(admin)/transfer",
+        "action": "Navigated from http://localhost:8080/open-account"
+      },
+      {
+        "source": "(admin)/transfer",
+        "target": "(admin)/bill-pay",
+        "action": "Navigated from http://localhost:8080/transfer"
+      },
+      {
+        "source": "(admin)/bill-pay",
+        "target": "(admin)/loan",
+        "action": "Navigated from http://localhost:8080/bill-pay"
+      },
+      {
+        "source": "(admin)/loan",
+        "target": "(admin)/profile",
+        "action": "Navigated from http://localhost:8080/loan"
+      },
+      {
+        "source": "(admin)/profile",
+        "target": "(admin)/cards",
+        "action": "Navigated from http://localhost:8080/profile"
+      },
+      {
+        "source": "(admin)/cards",
+        "target": "(admin)/investments",
+        "action": "Navigated from http://localhost:8080/cards"
+      },
+      {
+        "source": "(admin)/investments",
+        "target": "(admin)/statements",
+        "action": "Navigated from http://localhost:8080/investments"
+      },
+      {
+        "source": "(admin)/statements",
+        "target": "(admin)/security",
+        "action": "Navigated from http://localhost:8080/statements"
+      },
+      {
+        "source": "(admin)/security",
+        "target": "(admin)/support",
+        "action": "Navigated from http://localhost:8080/security"
+      },
+      {
+        "source": "(admin)/support",
+        "target": "(admin)/account/12345001",
+        "action": "Navigated from http://localhost:8080/support"
+      },
+      {
+        "source": "(admin)/account/12345001",
+        "target": "(admin)/account/12345002",
+        "action": "Navigated from http://localhost:8080/account/12345001"
+      },
+      {
+        "source": "(admin)/account/12345002",
+        "target": "(admin)/account/12345003",
+        "action": "Navigated from http://localhost:8080/account/12345002"
+      },
+      {
+        "source": "(admin)/account/12345003",
+        "target": "(admin)/account/12345004",
+        "action": "Navigated from http://localhost:8080/account/12345003"
+      }
+    ],
+    "stats": {
+      "total_nodes": 17,
+      "total_edges": 15,
+      "by_state": {
+        "visited": 16,
+        "undiscovered": 1
+      }
+    }
+  },
+  "exploration_stats": {
+    "llm_calls": 17,
+    "steps_taken": 16,
+    "queue_stats": {
+      "unvisited": 0,
+      "visited": 16,
+      "skipped": 0,
+      "total_discovered": 16
+    },
+    "loop_prevention": {
+      "visited_urls": 16,
+      "total_revisits": 0
+    },
+    "graph_stats": {
+      "total_nodes": 17,
+      "total_edges": 15,
+      "by_state": {
+        "visited": 16,
+        "undiscovered": 1
+      }
+    },
+    "coverage": {
+      "total_pages_discovered": 17,
+      "pages_visited": 16,
+      "visited_page_list": [
+        {
+          "title": "online-banking-suite",
+          "url": "(public)/"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/dashboard"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/open-account"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/transfer"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/bill-pay"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/loan"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/profile"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/cards"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/investments"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/statements"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/security"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/support"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/account/12345001"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/account/12345002"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/account/12345003"
+        },
+        {
+          "title": "online-banking-suite",
+          "url": "http://localhost:8080/account/12345004"
+        }
+      ]
+    }
+  }
+}
