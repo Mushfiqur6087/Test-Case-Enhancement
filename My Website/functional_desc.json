@@ -1,0 +1,77 @@
+{
+  "project_name": "ParaBank",
+  "website_url": "http://localhost:3000",
+  "navigation_overview": "The website has a sign-in page as the entry point. After login, users see a left-hand navigation menu with: Accounts Overview (default dashboard), Open New Account, Transfer Funds, Bill Pay, Request Loan, Update Contact Info, Manage Cards, Investments, Account Statements, Security Settings, Support Center, and Log Out. Public pages: Login, Register, Forgot Password.",
+  "modules": [
+    {
+      "id": 1,
+      "title": "Login",
+      "description": "The login page contains a login form with two required input fields—Email/Username and Password—along with a 'Sign In' button and a 'Forgot Password?' link.\n\nUI Elements:\n- Email/Username input field (required, must be valid email format)\n- Password input field (required, at least 8 characters with uppercase, lowercase, number, and special character)\n- Sign In button\n- Register link\n- Forgot Password? link\n\nValidation:\n- Email must be a valid email format\n- Password must be at least 8 characters with uppercase, lowercase, number, and special character\n- Successful login flashes 'Signed in successfully.' and redirects to Accounts Overview\n- Failed login shows 'Incorrect email or password. Please try again,' clears the password field"
+    },
+    {
+      "id": 2,
+      "title": "Register",
+      "description": "The registration page presents a sign-up form.\n\nUI Elements:\n- First Name (required)\n- Last Name (required)\n- Street Address (required)\n- City (required)\n- State dropdown (required, all US states)\n- ZIP Code (required)\n- Phone Number (required, format: (123) 456-7890 with auto-formatting)\n- Social Security Number (required, format: 123-45-6789 with auto-formatting)\n- Username (required, must be valid email format)\n- Password (required, at least 8 characters)\n- Confirm Password (required, must match Password)\n- Register button\n\nValidation:\n- Username must be valid email format\n- Phone Number must follow (123) 456-7890 format\n- ZIP Code must be 5 digits or 5+4 format (12345 or 12345-6789)\n- SSN must follow 123-45-6789 format\n- Password must be at least 8 characters\n- Confirm Password must match Password\n- All required fields must be filled\n- Success shows 'Account created successfully — please sign in' and redirects to login page\n- Failures display specific field-level errors"
+    },
+    {
+      "id": 3,
+      "title": "Accounts Overview",
+      "description": "Dashboard showing all customer accounts.\n\nUI Elements:\n- Welcome message with user's name\n- Table with columns: Account Number, Account Type, Current Balance, Account Status (Active badge), Open Date\n- Total balance displayed in footer row\n- Account numbers are clickable (not implemented yet)\n- Account numbers masked showing only last 4 digits (e.g., ****5001)\n\nBehavior:\n- Shows all accounts belonging to logged-in user\n- Rows ordered by account creation date (earliest first)\n- Balance shows current balance\n- Account numbers masked for security"
+    },
+    {
+      "id": 4,
+      "title": "Open New Account",
+      "description": "Account opening page with interactive form.\n\nUI Elements:\n- Account type selection cards (Checking or Savings) showing features and minimum deposit requirements\n- Initial Deposit Amount field (required, numeric)\n- Funding Source Account dropdown (required)\n- Open Account button\n\nBusiness Rules:\n- Account type must be selected\n- Deposit amount must be numeric and meet minimums: $25 for Checking, $100 for Savings\n- Funding account must have sufficient balance\n- Real-time validation errors displayed\n- Success shows 'Account opened successfully!' and redirects to accounts overview"
+    },
+    {
+      "id": 5,
+      "title": "Transfer Funds",
+      "description": "Transfer money between accounts.\n\nUI Elements:\n- Transfer type radio buttons: My ParaBank Account or External Account\n- Transfer Amount field (required, numeric)\n- Source Account dropdown (required, filtered to Checking and Savings only)\n- For internal transfers: Destination Account dropdown (user's own accounts)\n- For external transfers: Account Number input and Confirm Account Number input\n\nBusiness Rules:\n- Transfer amount must be valid and positive\n- Must have sufficient funds in source account\n- For external transfers, account numbers must match\n- Cannot transfer to same account (internal)\n- Success shows 'Transfer completed successfully.' with transaction ID\n- Failures show contextual errors: 'Insufficient funds' or 'Account numbers do not match'"
+    },
+    {
+      "id": 6,
+      "title": "Bill Pay",
+      "description": "Pay bills to payees.\n\nUI Elements:\n- Payee Name input (required)\n- Street Address input (required)\n- City input (required)\n- State input (required)\n- ZIP Code input (required)\n- Phone Number input (required)\n- Payee Account Number input (required)\n- Confirm Account Number input (required, must match Payee Account Number)\n- Payment Amount input (required, numeric)\n- Source Account dropdown (required)\n- Pay button\n\nValidation:\n- All required fields must be filled\n- Account numbers must match\n- Amount must be positive\n- Sufficient balance required in source account\n- Success shows 'Payment submitted successfully.' with reference code and updates balances\n- Errors displayed inline: 'Account numbers do not match', 'Insufficient funds'"
+    },
+    {
+      "id": 7,
+      "title": "Request Loan",
+      "description": "Apply for a loan.\n\nUI Elements:\n- Interactive loan type cards: Personal, Auto, Home (with interest rates displayed)\n- Loan Amount field (required, numeric, type-specific ranges: Personal $1,000-$50,000, Auto $5,000-$75,000, Home $50,000-$500,000)\n- Down Payment Amount field (required, numeric)\n- Collateral Account dropdown (required)\n- Apply button\n\nBusiness Rules:\n- Loan amount must be within type-specific range\n- Down payment must be less than loan amount\n- Sufficient collateral funds required\n- 20% collateral value requirement\n- Credit engine simulates 80% approval rate with 10% minimum down payment\n- Success shows 'Loan approved and created successfully!' with account details\n- Denial shows specific reasons: 'Insufficient credit history' or 'Inadequate collateral value'\n- Note: No actual balance debits occur in this mock system"
+    },
+    {
+      "id": 8,
+      "title": "Update Contact Info",
+      "description": "Update user profile information.\n\nUI Elements:\n- First Name input (required, pre-filled)\n- Last Name input (required, pre-filled)\n- Street Address input (required, pre-filled)\n- City input (required, pre-filled)\n- State input (required, pre-filled)\n- ZIP Code input (required, pre-filled)\n- Phone Number input (optional, pre-filled)\n- Update Profile button\n\nBehavior:\n- Form pre-populated with current user data\n- All required fields must remain filled\n- Success shows 'Profile updated successfully.' and refreshes data\n- Failures highlight invalid fields with inline error banner"
+    },
+    {
+      "id": 9,
+      "title": "Manage Cards",
+      "description": "Card management page with two forms.\n\nForm 1 - Request New Card:\n- Card Type selection (Debit or Credit)\n- Account to Link dropdown (required)\n- Shipping Address input (required, must be complete)\n- Request Card button\n- Success shows 'Card request submitted successfully.' with tracking ID\n\nForm 2 - Card Controls:\n- Select Existing Card dropdown\n- New Spending Limit input (numeric)\n- Travel Notice: optional date range and destination fields\n- Card Status toggle (Active or Frozen)\n- Update Controls button\n- Validates numeric limits, date ranges, and allowable card-status transitions\n- Success shows 'Card controls updated successfully.'\n- Validation failures (e.g., limit above policy) appear inline"
+    },
+    {
+      "id": 10,
+      "title": "Investments",
+      "description": "Investment management page with multiple sections.\n\nSection 1 - Portfolio Snapshot (read-only):\n- Current fund holdings\n- Market value\n- Unrealised gain or loss\n\nSection 2 - Trade Funds Form:\n- Action selection (Buy or Sell)\n- Fund Symbol input (autocomplete)\n- Quantity input (required, must be > 0)\n- Funding/Destination Account dropdown\n- Execute Trade button\n- Validates symbol exists, quantity > 0, sufficient buying power or share balance\n- Success shows 'Trade executed successfully.' with order ID\n\nSection 3 - Recurring Investment Plan Form:\n- Fund Symbol input\n- Contribution Amount input (required, must meet minimum)\n- Frequency selection (Weekly or Monthly)\n- Start Date input (required, must be in the future)\n- Funding Account dropdown\n- Create Plan button\n- Validates start date is future, contribution meets minimum, adequate funding balance\n- Success shows 'Plan created successfully.'\n- Errors highlight problematic fields (e.g., 'Start date must be in the future')"
+    },
+    {
+      "id": 11,
+      "title": "Account Statements",
+      "description": "Statement generation and preferences page.\n\nForm 1 - Generate Statement:\n- Statement Period: month-and-year or custom date range\n- Account dropdown (required)\n- Generate Statement button\n- Validates dates and retrieves relevant transactions\n- Success shows 'Statement generated successfully.'\n- Failure shows 'Unable to generate statement — please try again later.'\n\nForm 2 - e-Statement Preferences:\n- Checkbox to opt into paperless statements\n- Email Address input (required when opted in)\n- Save Preference button\n- Validates email address format\n- Success shows 'e-Statement preference updated.'\n- Failure highlights email field with guidance"
+    },
+    {
+      "id": 12,
+      "title": "Security Settings",
+      "description": "Security settings page with password change form.\n\nUI Elements:\n- Current Password input (required)\n- New Password input (required)\n- Confirm New Password input (required, must match New Password)\n- Change Password button\n\nValidation:\n- Current password must be verified against stored credentials\n- New password must follow strong-password policy (at least 8 characters, uppercase, lowercase, number, special character)\n- Confirm New Password must match New Password\n- Success shows 'Password changed successfully.'\n- Validation errors highlight appropriate fields"
+    },
+    {
+      "id": 13,
+      "title": "Support Center",
+      "description": "Support page with two communication forms.\n\nForm 1 - Secure Message:\n- Subject input (required, length validated)\n- Category dropdown (Account, Technical, Security, Other)\n- Message Body (rich text, required)\n- Attachment input (optional, file type validated)\n- Send Message button\n- Success shows 'Message sent successfully.' with ticket ID\n- Failures display inline guidance\n\nForm 2 - Schedule Callback:\n- Reason for Call dropdown (required)\n- Preferred Date input (required, must be at least next business day)\n- Preferred Time Window input (required)\n- Phone Number input (pre-filled, editable, format validated)\n- Request Callback button\n- Success shows 'Callback request submitted.' and sends email confirmation\n- Validation errors shown inline"
+    },
+    {
+      "id": 14,
+      "title": "Logout",
+      "description": "Logout functionality accessible from the left navigation menu.\n\nBehavior:\n- Clicking 'Log Out' ends the user session\n- Clears sensitive data\n- Redirects to the login page\n- After logout, accessing protected pages should redirect to login"
+    }
+  ]
+}
