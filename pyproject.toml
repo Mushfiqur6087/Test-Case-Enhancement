@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intelligent-navigator"
+version = "0.1.0"
+description = "LLM-guided web exploration agent that builds navigation graphs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "openai>=1.0",
+    "playwright>=1.40",
+]
+
+[project.optional-dependencies]
+viz = [
+    "networkx",
+    "matplotlib",
+]
+
+[project.scripts]
+intelligent-navigator = "intelligent_navigator.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["intelligent_navigator*"]

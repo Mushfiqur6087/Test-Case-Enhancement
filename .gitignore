@@ -56,3 +56,6 @@ test-results/
 # Coverage
 .coverage
 htmlcov/
+
+# Output directory
+output/
