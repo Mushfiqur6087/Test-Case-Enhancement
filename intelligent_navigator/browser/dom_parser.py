@@ -172,13 +172,18 @@ class DOMTreeParser:
 
         self._flat_index = 0
         self._flat_map: Dict[int, str] = {}
+        _skip_attrs = {"class", "style"}
 
         def traverse(node: DOMElementNode, depth: int) -> None:
             if node.is_interactive:
                 index = self._flat_index
                 self._flat_index += 1
                 indent = "    " * depth
-                attrs = " ".join(f"{k}='{v}'" for k, v in node.attributes.items())
+                attrs = " ".join(
+                    f"{k}='{v}'"
+                    for k, v in node.attributes.items()
+                    if k not in _skip_attrs and v != ""
+                )
                 attrs_str = f" {attrs}" if attrs else ""
                 inner_text_str = f" inner_text='{node.inner_text}'" if node.inner_text else ""
                 tag_str = f"<{node.tag_name}{attrs_str}{inner_text_str} />"

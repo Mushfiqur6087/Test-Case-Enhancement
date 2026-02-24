@@ -8,7 +8,7 @@ Usage:
         --functional-desc path/to/functional_desc.txt \
         --output output/ \
         --api-key "sk-..." \
-        --model gpt-4o-mini \
+        --model gpt-4o \
         --max-steps 100 \
         --max-pages 50 \
         --max-llm-calls 150 \

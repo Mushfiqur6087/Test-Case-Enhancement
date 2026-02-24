@@ -216,7 +216,7 @@ Respond with ONLY valid JSON:
 # PAGE AUTH CLASSIFICATION
 # =====================================================================
 
-PROMPT_PAGE_AUTH_CLASSIFY = """Look at this page and determine if it requires authentication (login) to access.
+PROMPT_PAGE_AUTH_CLASSIFY = """Look at this page and determine if it can be viewed WITHOUT being logged in.
 
 URL: {page_url}
 Title: {page_title}
@@ -224,11 +224,14 @@ Title: {page_title}
 Interactive Elements:
 {selector_map_string}
 
-A PUBLIC page is one that anyone can see without logging in: login forms, registration forms, forgot-password pages, landing pages, public info pages.
-An AUTH-REQUIRED page shows user-specific content: dashboards, account details, settings, profiles, transactions, etc. These pages typically have navigation menus with links like "Dashboard", "Profile", "Logout", etc.
+Classification rules:
+- PUBLIC (requires_auth=false): login/sign-in forms, registration forms, forgot-password pages, landing pages, public info pages.
+  IMPORTANT: A page that HAS a login form is itself PUBLIC — users access it BEFORE logging in, not after.
+- AUTH-REQUIRED (requires_auth=true): dashboards, account details, settings, profiles, transactions, admin panels.
+  These pages show user-specific data and have navigation with links like "Dashboard", "Logout", "Profile".
 
 Respond with ONLY valid JSON:
 {{
   "reasoning": "Brief explanation of why this page is public or requires auth",
-  "requires_auth": true
+  "requires_auth": false
 }}"""

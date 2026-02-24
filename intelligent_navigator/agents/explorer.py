@@ -10,6 +10,7 @@ Returns PageExplorerResult with all links found (visible + sub-state).
 
 import json
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 from intelligent_navigator.core.llm import LLMClient
 from intelligent_navigator.core.models import (
@@ -191,6 +192,17 @@ class Explorer:
         """Ask LLM whether this page requires authentication. Returns True if auth required."""
         if not selector_map_string:
             return True  # Conservative default
+
+        # Heuristic: well-known public URL paths never need an LLM call
+        _PUBLIC_PATH_PATTERNS = (
+            "/login", "/signin", "/sign-in",
+            "/register", "/signup", "/sign-up",
+            "/forgot-password", "/reset-password",
+        )
+        parsed_path = urlparse(current_url).path.rstrip("/").lower()
+        if any(parsed_path == p or parsed_path.endswith(p) for p in _PUBLIC_PATH_PATTERNS):
+            log(f"  [Explorer] Page auth classification: requires_auth=False (heuristic URL match)", self.debug, self.debug_file)
+            return False
 
         # Truncate to keep this call cheap
         prompt = PROMPT_PAGE_AUTH_CLASSIFY.format(
