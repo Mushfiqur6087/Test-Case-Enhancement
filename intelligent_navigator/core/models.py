@@ -123,6 +123,8 @@ class NavigatorCommand:
     target_label: str = ""
     credentials: Optional[RoleCredentials] = None
     reasoning: str = ""
+    navigation_graph_context: str = ""  # Compact site map for multi-hop route planning
+    source_page_url: str = ""  # Page where the target link was originally discovered
 
 
 @dataclass
@@ -134,6 +136,20 @@ class PageNavigatorResult:
     failure_reason: str = ""
     actions_taken: List[Dict[str, Any]] = field(default_factory=list)
     retry_attempted: bool = False
+    navigation_steps: int = 0  # How many LLM steps the Navigator loop took
+
+
+@dataclass
+class NavigationStepRecord:
+    """Record of a single step in the Navigator's multi-step loop."""
+    step_number: int
+    url_before: str
+    title_before: str
+    actions_requested: List[Dict[str, Any]] = field(default_factory=list)
+    actions_executed: List[Dict[str, Any]] = field(default_factory=list)
+    url_after: str = ""
+    title_after: str = ""
+    reasoning: str = ""
 
 
 @dataclass

@@ -137,6 +137,55 @@ class NavigationGraph:
             "stats": self.get_stats(),
         }
 
+    def get_site_map_summary(self) -> str:
+        """Build a compact adjacency-list site map for the Navigator.
+
+        Format:
+          /path (Title) -> /link1, /link2, /link3
+        Only includes visited/fully_explored nodes with their outgoing edges.
+        """
+        if not self._nodes:
+            return "(no pages explored yet)"
+
+        # Build adjacency map: source_key -> list of target paths
+        adjacency: Dict[str, List[str]] = {}
+        for edge in self._edges:
+            src = edge.source_identity_key
+            # Extract the path portion from the target URL or identity key
+            target_path = edge.target_url
+            if not target_path:
+                # Fall back to extracting path from identity key like "(public)/register"
+                tgt_key = edge.target_identity_key
+                paren_end = tgt_key.find(")")
+                target_path = tgt_key[paren_end + 1:] if paren_end >= 0 else tgt_key
+            else:
+                from urllib.parse import urlparse
+                target_path = urlparse(target_path).path or "/"
+
+            if src not in adjacency:
+                adjacency[src] = []
+            if target_path not in adjacency[src]:
+                adjacency[src].append(target_path)
+
+        lines = ["Known Site Map (pages explored so far and their outgoing links):"]
+        for key, node in self._nodes.items():
+            if node.state not in (NodeState.VISITED, NodeState.FULLY_EXPLORED):
+                continue
+            # Extract path from identity key
+            paren_end = key.find(")")
+            path = key[paren_end + 1:] if paren_end >= 0 else key
+            title = node.title or "Untitled"
+            targets = adjacency.get(key, [])
+            if targets:
+                lines.append(f"  {path} ({title}) -> {', '.join(targets)}")
+            else:
+                lines.append(f"  {path} ({title}) -> (no outgoing links)")
+
+        if len(lines) == 1:
+            return "(no pages explored yet)"
+
+        return "\n".join(lines)
+
     def get_stats(self) -> Dict[str, Any]:
         """Return graph statistics."""
         state_counts = {}

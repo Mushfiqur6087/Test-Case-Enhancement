@@ -259,12 +259,20 @@ class Orchestrator:
     def _handle_explore_page(self, decision: NavigatorDecision) -> None:
         """Handle an explore_page command: navigate there, then explore."""
 
+        # Build graph context for the Navigator's multi-hop route planning
+        graph_context = self.graph.get_site_map_summary()
+
+        # Look up the source page where this link was originally discovered
+        source_page = self._find_source_page(decision.target_url)
+
         # Step 1: Navigator gets us there
         command = NavigatorCommand(
             command_type="explore_page",
             target_url=decision.target_url,
             target_label=decision.target_label,
             reasoning=decision.reasoning,
+            navigation_graph_context=graph_context,
+            source_page_url=source_page,
         )
         nav_result = self.navigator.navigate(command)
 
@@ -313,6 +321,8 @@ class Orchestrator:
             if creds.role not in self.roles_explored:
                 self.roles_explored.append(creds.role)
             self._log(f"  Logged in as: {creds.role}")
+            # Mark the login page as visited so it's not re-explored later
+            self.queue.mark_visited(command.target_url)
             self._last_action_feedback = (
                 f"Successfully logged in as '{creds.role}'. "
                 f"Now on: {nav_result.current_url} ({nav_result.current_title})"
@@ -615,6 +625,13 @@ class Orchestrator:
             if "/login" in url.lower() or "/signin" in url.lower():
                 return url
         return self.base_url.rstrip("/") + "/login"
+
+    def _find_source_page(self, target_url: str) -> str:
+        """Find the source page where a target URL was originally discovered."""
+        for item in self.queue._unvisited + self.queue._visited + self.queue._skipped:
+            if item.url == target_url and item.source_page:
+                return item.source_page
+        return ""
 
     def _try_navigate_from_queue(self) -> None:
         """Fallback: navigate to the next unvisited URL from the queue."""
