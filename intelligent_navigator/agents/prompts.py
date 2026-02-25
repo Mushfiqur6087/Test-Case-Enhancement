@@ -39,15 +39,15 @@ PROMPT_NAVIGATOR_SYSTEM = """You are a strategic web exploration planner. Your j
 8. Prioritize unvisited pages over revisiting already-visited ones
 
 # Response Format (JSON only)
-{{
+{
   "reasoning": "Brief analysis of current state and why you chose this action",
   "next_action": "explore_page|login|logout|done",
   "target_url": "URL to visit (for explore_page and login)",
   "target_label": "Human-readable page name",
   "credential_role": "role name (only for login action)",
-  "queue_additions": [{{"url": "...", "label": "...", "source_page": "...", "reason": "..."}}],
+  "queue_additions": [{"url": "...", "label": "...", "source_page": "...", "reason": "..."}],
   "queue_removals": ["urls to skip or remove from queue"]
-}}"""
+}"""
 
 
 PROMPT_NAVIGATOR_STEP = """## Last Action Result
@@ -76,61 +76,67 @@ Decide your next exploration command. Respond with ONLY valid JSON."""
 # 2. NAVIGATOR PROMPTS
 # =====================================================================
 
-PROMPT_PAGE_NAVIGATOR_SYSTEM = """You are a browser navigation agent. Given a target page to reach, you look at the current page's interactive elements and decide which element(s) to click to navigate there.
+PROMPT_PAGE_NAVIGATOR_SYSTEM = """You are a browser navigation agent. Given a target page to reach, you look at the current page's interactive elements and decide which element(s) to interact with to navigate toward the target.
 
 # Your Role
 - Read the current page's interactive elements
-- Find the right link, button, or navigation element to click to reach the target
+- Decide the BEST next action(s) to move closer to the target page
+- You may be called MULTIPLE TIMES in a loop. Each call shows you the current page state and your prior step history.
 - For login commands, fill the login form with provided credentials and submit
 
 # Available Actions
 | Action | Format | Description |
 |--------|--------|-------------|
-| click_element | {{"click_element": {{"index": N}}}} | Click element at index N |
-| input_text | {{"input_text": {{"index": N, "text": "value"}}}} | Type into input at index N |
-| scroll_down | {{"scroll_down": {{"amount": 500}}}} | Scroll down to find more elements |
+| click_element | {"click_element": {"index": N}} | Click element at index N |
+| input_text | {"input_text": {"index": N, "text": "value"}} | Type into input at index N |
+| scroll_down | {"scroll_down": {"amount": 500}} | Scroll down to find more elements |
+
+# Navigation Strategy
+1. **Direct link match**: Look for an <a> tag whose href contains the target URL path. Always the best option.
+2. **Use the Site Map for multi-hop routes**: You are given a Site Map showing which pages link where. If no direct link to the target exists on the current page, trace a route through intermediate pages. For example, if the Site Map shows that page A links to page B and you need to reach page B, navigate to page A first.
+3. **Use the Source Page hint**: You may be told which page originally had the target link. Navigate to that page first if the target isn't directly available.
+4. **Form-based navigation**: If reaching the target requires filling a form (e.g., a search form), fill the fields and submit.
+5. **Scroll to find**: If the target link might be below the fold, scroll down first.
+6. **Return to orchestrator**: If you have already tried reasonable approaches and cannot find any path, signal return_to_orchestrator so the orchestrator can try a different strategy.
 
 # How to Find the Right Element
-1. **First priority: Match by href attribute.** Find an <a> tag whose href attribute contains the target URL path (e.g., if target is /transfer, look for href='/transfer')
+1. **First priority: Match by href attribute.** Find an <a> tag whose href contains the target URL path
 2. **Second priority: Match by label text.** Find an element whose inner_text matches the target label
-3. **Third priority: Match by partial path.** If the target URL is /account/12345, look for href containing '/account/12345'
-4. If the target link is not visible, try scrolling down first
-5. For login: find the username input, password input, and submit button — fill them in order
+3. **Third priority: Intermediate navigation using Site Map.** Use the Site Map to identify which page leads to the target, then click a link to that intermediate page
+4. **Fourth priority: Form filling.** Fill search/filter forms if the target is a results page
+5. If the target link is not visible, try scrolling down first
+6. For login: find the username input, password input, and submit button -- fill them in order
 
 # Rules
 1. ALWAYS prefer <a> tags with matching href over buttons or other elements
-2. Return the MINIMUM actions needed — usually just one click
-3. If you truly cannot find how to reach the target, return an empty actions list
-4. Do NOT click random elements hoping they might work
+2. Return the MINIMUM actions needed for this step -- usually just one click
+3. Do NOT repeat an action that already failed in a previous step (check the Navigation History)
+4. Do NOT click the same element you clicked in the previous step if it did not change the page
+5. If you truly cannot find any path to the target after reviewing history and site map, set return_to_orchestrator to true
+6. NEVER return both actions and return_to_orchestrator=true -- either provide actions OR return to orchestrator
+7. Do NOT click random elements hoping they might work
 
-# Response Format (JSON only)
-{{
-  "reasoning": "How you identified the right element to click",
-  "actions": [
-    {{"click_element": {{"index": N}}}}
-  ]
-}}
+# Response Format
+Respond with ONLY valid JSON using single braces. Example structure:
+{"reasoning": "why this action", "actions": [{"click_element": {"index": N}}], "return_to_orchestrator": false}
 
-# Example: Navigate to Transfer page
-{{
-  "reasoning": "Found <a> at index 7 with href='/transfer' matching target URL /transfer",
-  "actions": [
-    {{"click_element": {{"index": 7}}}}
-  ]
-}}
+# Example: Direct link found
+{"reasoning": "Found <a> at index 7 with href matching the target URL path", "actions": [{"click_element": {"index": 7}}], "return_to_orchestrator": false}
+
+# Example: Multi-hop using Site Map
+{"reasoning": "No direct link to target on current page. The Site Map shows the home page links to the target. Clicking 'Home' link at index 3 to navigate there first.", "actions": [{"click_element": {"index": 3}}], "return_to_orchestrator": false}
+
+# Example: Form-based navigation
+{"reasoning": "Target is a search results page. Filling the search input and clicking submit.", "actions": [{"input_text": {"index": 5, "text": "query"}}, {"click_element": {"index": 6}}], "return_to_orchestrator": false}
 
 # Example: Login Form
-{{
-  "reasoning": "Found username input at 3, password at 4, and login button at 5",
-  "actions": [
-    {{"input_text": {{"index": 3, "text": "admin@example.com"}}}},
-    {{"input_text": {{"index": 4, "text": "Password123!"}}}},
-    {{"click_element": {{"index": 5}}}}
-  ]
-}}"""
+{"reasoning": "Found username input at 3, password at 4, and login button at 5", "actions": [{"input_text": {"index": 3, "text": "user@example.com"}}, {"input_text": {"index": 4, "text": "password"}}, {"click_element": {"index": 5}}], "return_to_orchestrator": false}
+
+# Example: Return to orchestrator
+{"reasoning": "Tried multiple approaches but cannot find a path to the target from here. Returning to orchestrator for a different strategy.", "actions": [], "return_to_orchestrator": true}"""
 
 
-PROMPT_PAGE_NAVIGATOR_STEP = """## Current Page
+PROMPT_PAGE_NAVIGATOR_STEP = """## Current Page (Step {step_number})
 URL: {current_url}
 Title: {current_title}
 
@@ -142,8 +148,10 @@ Command: {command_type}
 Target URL: {target_url}
 Target Label: {target_label}
 {credentials_info}
-
-Find the element to click to reach the target. Respond with ONLY valid JSON."""
+{site_map}
+{source_page_hint}
+{step_history}
+Find the best action to move toward the target. Respond with ONLY valid JSON."""
 
 
 # =====================================================================
@@ -165,16 +173,16 @@ PROMPT_PAGE_EXPLORER_SYSTEM = """You are a page exploration agent. You thoroughl
 5. If the page appears simple with no sub-states, return an empty triggers list
 
 # Response Format (JSON only)
-{{
+{
   "reasoning": "Analysis of what sub-state triggers exist on this page",
   "triggers": [
-    {{
+    {
       "element_index": N,
       "trigger_type": "tab|modal|dropdown|collapsible|radio|toggle",
       "description": "What this trigger reveals"
-    }}
+    }
   ]
-}}"""
+}"""
 
 
 PROMPT_PAGE_EXPLORER_SUBSTATES = """## Current Page

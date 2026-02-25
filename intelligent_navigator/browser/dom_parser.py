@@ -185,7 +185,14 @@ class DOMTreeParser:
                     if k not in _skip_attrs and v != ""
                 )
                 attrs_str = f" {attrs}" if attrs else ""
-                inner_text_str = f" inner_text='{node.inner_text}'" if node.inner_text else ""
+                # Truncate inner_text to avoid bloating the prompt with
+                # full-page text from container elements like <body>/<div>
+                inner_text = node.inner_text
+                if inner_text:
+                    inner_text = " ".join(inner_text.split())  # collapse whitespace/newlines
+                    if len(inner_text) > 100:
+                        inner_text = inner_text[:100] + "..."
+                inner_text_str = f" inner_text='{inner_text}'" if inner_text else ""
                 tag_str = f"<{node.tag_name}{attrs_str}{inner_text_str} />"
                 self._flat_map[index] = f"{indent}[{index}]{tag_str}"
             for child in node.children:
