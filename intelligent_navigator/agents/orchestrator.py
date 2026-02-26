@@ -42,6 +42,7 @@ from intelligent_navigator.exploration.credentials import CredentialParser
 from intelligent_navigator.browser.controller import BrowserController
 from intelligent_navigator.agents.navigator import Navigator
 from intelligent_navigator.agents.explorer import Explorer
+from intelligent_navigator.agents.link_curator import LinkCurator
 from intelligent_navigator.agents.prompts import (
     PROMPT_NAVIGATOR_SYSTEM,
     PROMPT_NAVIGATOR_STEP,
@@ -127,6 +128,14 @@ class Orchestrator:
         self.loop_detector = LoopDetector()
         self.credential_parser = CredentialParser(self._base_llm)
         self.credentials: List[RoleCredentials] = []
+
+        # --- Link Curator (filters links before queue insertion) ---
+        self.link_curator = LinkCurator(
+            llm_client=self._base_llm,
+            page_identity_computer=self.page_identity_computer,
+            debug=self.debug,
+            debug_file=self.debug_file,
+        )
 
         # Feedback state (passed into next Orchestrator prompt)
         self._last_action_feedback = "This is the start of exploration. No actions taken yet."
@@ -278,21 +287,33 @@ class Orchestrator:
 
         if not nav_result.success:
             self._log(f"  Navigation failed: {nav_result.failure_reason}")
-            self._last_action_feedback = (
-                f"FAILED to reach {decision.target_url} ({decision.target_label}).\n"
-                f"Reason: {nav_result.failure_reason}\n"
-                f"Currently on: {nav_result.current_url}\n"
-                f"Consider: login first if auth is needed, try a different path, or skip this page."
-            )
-            # Mark as unreachable in graph if we tried hard
-            if nav_result.retry_attempted:
-                candidate = self.page_identity_computer.compute(
-                    decision.target_url, self.current_role
+
+            if nav_result.was_redirected:
+                # Server redirect (e.g., access denied → enrollment page)
+                # Don't mark as permanently unreachable — it may become
+                # reachable after enrollment or with different permissions.
+                self._last_action_feedback = (
+                    f"REDIRECTED: Tried to reach {decision.target_url} ({decision.target_label}), "
+                    f"but the server redirected to {nav_result.redirected_to}.\n"
+                    f"This likely means the current user lacks access (e.g., not enrolled in the course).\n"
+                    f"Consider: skip this page via queue_removals, or enroll the user first if possible."
                 )
-                existing = self.graph.find_node_by_path(
-                    candidate.normalized_path, candidate.structural_params
+            else:
+                self._last_action_feedback = (
+                    f"FAILED to reach {decision.target_url} ({decision.target_label}).\n"
+                    f"Reason: {nav_result.failure_reason}\n"
+                    f"Currently on: {nav_result.current_url}\n"
+                    f"Consider: login first if auth is needed, try a different path, or skip this page."
                 )
-                self.graph.mark_unreachable(existing if existing else candidate)
+                # Only mark as permanently unreachable for genuine failures
+                if nav_result.retry_attempted:
+                    candidate = self.page_identity_computer.compute(
+                        decision.target_url, self.current_role
+                    )
+                    existing = self.graph.find_node_by_path(
+                        candidate.normalized_path, candidate.structural_params
+                    )
+                    self.graph.mark_unreachable(existing if existing else candidate)
             return
 
         # Step 2: Explorer extracts everything from the page
@@ -374,70 +395,20 @@ class Orchestrator:
             self._last_action_feedback = "Explorer returned empty result -- no page loaded."
             return
 
-        # Determine the role for this page: use LLM classification
-        page_role = self.current_role
-        if not explorer_result.page_requires_auth:
-            page_role = "public"
-
-        # Record in graph — reuse existing node if this path was already
-        # discovered under a different role (e.g. login first seen as admin,
-        # now classified as public). The LLM classification (page_role) wins.
-        candidate = self.page_identity_computer.compute(current_url, page_role)
-        existing = self.graph.find_node_by_path(
-            candidate.normalized_path, candidate.structural_params
-        )
-        if existing and existing.to_key_string() != candidate.to_key_string():
-            # Path exists under a different role. Update that node's role
-            # to the LLM-classified role instead of creating a duplicate.
-            old_key = existing.to_key_string()
-            node = self.graph._nodes.pop(old_key, None)
-            if node:
-                # Remove old edge keys referencing the old key and re-add with new key
-                existing.role = page_role
-                node.identity = existing
-                new_key = existing.to_key_string()
-                self.graph._nodes[new_key] = node
-                # Update edge references
-                for edge in self.graph._edges:
-                    if edge.source_identity_key == old_key:
-                        edge.source_identity_key = new_key
-                    if edge.target_identity_key == old_key:
-                        edge.target_identity_key = new_key
-                # Update edge_keys set
-                new_edge_keys = set()
-                for ek in self.graph._edge_keys:
-                    s, t = ek
-                    s = new_key if s == old_key else s
-                    t = new_key if t == old_key else t
-                    new_edge_keys.add((s, t))
-                self.graph._edge_keys = new_edge_keys
-            identity = existing
-        else:
-            identity = candidate
+        # Record in graph using current role
+        identity = self.page_identity_computer.compute(current_url, self.current_role)
 
         self.graph.add_node(identity, title=current_title, state=NodeState.VISITED)
         self.loop_detector.mark_visited(current_url)
         self.queue.mark_visited(current_url)
 
-        # Add discovered links to queue AND as edges in the graph
-        new_links_added = 0
+        # --- Phase A: Record ALL links as graph edges (unfiltered) ---
+
         for link in explorer_result.links_found:
             link_url = link["url"]
             link_label = link.get("label", "")
-            item = QueueItem(
-                url=link_url,
-                label=link_label,
-                source_page=current_url,
-                reason="Discovered on page",
-            )
-            if self.queue.add(item):
-                new_links_added += 1
 
-            # Record every discovered link as an edge in the navigation graph.
-            # Reuse existing node identity if this path already exists under
-            # any role so we don't create duplicate nodes like
-            # (admin)/login AND (public)/login.
-            candidate = self.page_identity_computer.compute(link_url, page_role)
+            candidate = self.page_identity_computer.compute(link_url, self.current_role)
             existing = self.graph.find_node_by_path(
                 candidate.normalized_path, candidate.structural_params
             )
@@ -451,25 +422,13 @@ class Orchestrator:
                     current_url, link_url,
                 )
 
-        # Add sub-state links to queue AND as edges in the graph
-        sub_state_links_added = 0
         for ss in explorer_result.sub_states_found:
             for link in ss.new_links:
                 link_url = link["url"]
                 link_label = link.get("label", "")
-                item = QueueItem(
-                    url=link_url,
-                    label=link_label,
-                    source_page=current_url,
-                    reason=f"From sub-state: {ss.trigger_description}",
-                )
-                if self.queue.add(item):
-                    sub_state_links_added += 1
 
-                # Record sub-state discovered link as edge too
-                # Reuse existing identity to avoid duplicate nodes
                 candidate = self.page_identity_computer.compute(
-                    link_url, page_role
+                    link_url, self.current_role
                 )
                 existing = self.graph.find_node_by_path(
                     candidate.normalized_path, candidate.structural_params
@@ -483,6 +442,27 @@ class Orchestrator:
                         f"Sub-state link ({ss.trigger_description}): {link_label}",
                         current_url, link_url,
                     )
+
+        # --- Phase B: Link Curator selects links for queue ---
+
+        all_links = explorer_result.links_found[:]
+        for ss in explorer_result.sub_states_found:
+            all_links.extend(ss.new_links)
+
+        graph_summary = self.graph.get_site_map_summary()
+        keep_urls = self.link_curator.curate(all_links, current_url, graph_summary)
+
+        new_links_added = 0
+        for link in all_links:
+            if link["url"] in keep_urls:
+                item = QueueItem(
+                    url=link["url"],
+                    label=link.get("label", ""),
+                    source_page=current_url,
+                    reason="Curated by Link Curator",
+                )
+                if self.queue.add(item):
+                    new_links_added += 1
 
         # Build feedback for Orchestrator
         link_summary = self._format_links_for_feedback(explorer_result.links_found[:15])
@@ -498,16 +478,16 @@ class Orchestrator:
 
         self._last_action_feedback = (
             f"Successfully explored: {current_title} ({current_url})\n"
-            f"Links found: {len(explorer_result.links_found)} "
-            f"({new_links_added} new added to queue)\n"
+            f"Links found: {len(all_links)} total, "
+            f"{new_links_added} curated & added to queue\n"
             f"{link_summary}"
             f"{sub_state_summary}"
         )
 
         self._log(
-            f"  Explored {current_title}: {len(explorer_result.links_found)} links, "
+            f"  Explored {current_title}: {len(all_links)} links, "
             f"{len(explorer_result.sub_states_found)} sub-states, "
-            f"{new_links_added + sub_state_links_added} new to queue"
+            f"{new_links_added} curated to queue"
         )
 
     # ================================================================
@@ -660,6 +640,7 @@ class Orchestrator:
             self.llm_call_count
             + self.navigator.llm_call_count
             + self.explorer.llm_call_count
+            + self.link_curator.llm_call_count
         )
 
     def _load_expected_pages(self) -> str:
@@ -698,6 +679,7 @@ class Orchestrator:
                 "llm_calls_orchestrator": self.llm_call_count,
                 "llm_calls_navigator": self.navigator.llm_call_count,
                 "llm_calls_explorer": self.explorer.llm_call_count,
+                "llm_calls_link_curator": self.link_curator.llm_call_count,
                 "llm_calls_total": self._total_llm_calls(),
                 "steps_taken": self.step_count,
                 "queue_stats": self.queue.get_stats(),
