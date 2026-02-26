@@ -137,6 +137,8 @@ class PageNavigatorResult:
     actions_taken: List[Dict[str, Any]] = field(default_factory=list)
     retry_attempted: bool = False
     navigation_steps: int = 0  # How many LLM steps the Navigator loop took
+    was_redirected: bool = False  # True if server redirected to a different URL
+    redirected_to: str = ""  # The URL the server redirected to
 
 
 @dataclass
@@ -168,7 +170,6 @@ class PageExplorerResult:
     links_found: List[Dict[str, Any]] = field(default_factory=list)
     sub_states_found: List[SubStateInfo] = field(default_factory=list)
     page_metadata: Dict[str, Any] = field(default_factory=dict)
-    page_requires_auth: bool = True  # LLM-classified: False for public pages (login, register, etc.)
 
 
 @dataclass

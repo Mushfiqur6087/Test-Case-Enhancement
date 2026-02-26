@@ -1,10 +1,11 @@
 """
-LLM prompt templates for the Three-Agent Exploration System.
+LLM prompt templates for the Four-Agent Exploration System.
 
 Agents:
-  1. Orchestrator  -- strategic: decides which page to visit next
-  2. Navigator     -- tactical: figures out how to reach a target page
-  3. Explorer      -- thorough: extracts all links + sub-states from current page
+  1. Orchestrator   -- strategic: decides which page to visit next
+  2. Navigator      -- tactical: figures out how to reach a target page
+  3. Explorer       -- thorough: extracts all links + sub-states from current page
+  4. Link Curator   -- selective: picks which links are worth adding to the queue
 
 Each prompt requests JSON-only responses for reliable parsing.
 """
@@ -256,25 +257,45 @@ Respond with ONLY valid JSON:
 
 
 # =====================================================================
-# PAGE AUTH CLASSIFICATION
+# 4. LINK CURATOR PROMPTS
 # =====================================================================
 
-PROMPT_PAGE_AUTH_CLASSIFY = """Look at this page and determine if it can be viewed WITHOUT being logged in.
+PROMPT_LINK_CURATOR_SYSTEM = """You are a link curation agent for a web application exploration system. Your ONLY job is to deduplicate repeated link patterns — when many links share the same URL template, you pick one representative. You do NOT decide what is "important" or "unimportant."
 
-URL: {page_url}
-Title: {page_title}
+# Your Role
+- You receive grouped link patterns extracted from a page (e.g., 17 course links that all follow /course/view.php?id=*)
+- For each pattern with COUNT > 1: keep one representative link (all instances share the same page template)
+- For each pattern with COUNT = 1: ALWAYS "keep" — it is unique
 
-Interactive Elements:
-{selector_map_string}
+# STRICT Rules
+1. Your job is ONLY deduplication. If a pattern has multiple instances (count > 1), keep one. That is your entire purpose.
+2. NEVER skip a pattern just because it appears in the navigation graph — the graph shows discovered links, not fully explored pages. Another agent decides what to visit.
+3. NEVER skip login, logout, settings, profile, or any functional page. You are not authorized to judge page importance.
+4. The ONLY patterns you may "skip" are: anchor-only links (#section), javascript:void links, or truly broken/empty URLs.
+5. When in doubt, ALWAYS "keep". Skipping a useful page is a critical error. Keeping an extra page is harmless.
 
-Classification rules:
-- PUBLIC (requires_auth=false): login/sign-in forms, registration forms, forgot-password pages, landing pages, public info pages.
-  IMPORTANT: A page that HAS a login form is itself PUBLIC — users access it BEFORE logging in, not after.
-- AUTH-REQUIRED (requires_auth=true): dashboards, account details, settings, profiles, transactions, admin panels.
-  These pages show user-specific data and have navigation with links like "Dashboard", "Logout", "Profile".
+# Response Format (JSON only)
+{
+  "reasoning": "Brief overall analysis",
+  "decisions": [
+    {
+      "pattern": "/exact/pattern/from/input",
+      "action": "keep|skip",
+      "reasoning": "Why this decision"
+    }
+  ]
+}"""
 
-Respond with ONLY valid JSON:
-{{
-  "reasoning": "Brief explanation of why this page is public or requires auth",
-  "requires_auth": false
-}}"""
+
+PROMPT_LINK_CURATOR_STEP = """## Source Page
+{source_url}
+
+## Link Patterns Found
+Each entry shows a normalized URL pattern, how many links match it, and example URLs/labels.
+
+{pattern_table}
+
+## Navigation Graph (pages already explored)
+{graph_summary}
+
+For each pattern above, decide whether to "keep" one representative link for the exploration queue or "skip" the entire group. Respond with ONLY valid JSON."""
