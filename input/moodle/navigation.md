@@ -1,0 +1,11 @@
+## Navigation
+
+The Moodle navigation structure provides multiple ways to access features throughout the system.
+
+The Top Navigation Bar appears on every page and contains the site name "MoodleTest" on the left which links to the home page. Next to it are links for Home, Dashboard, and My courses that provide quick access to the main areas of the system. On the right side of the navigation bar, a notifications bell icon shows alerts when clicked, a messaging icon opens the messaging drawer for conversations, and the user's initials displayed in a circular icon (e.g., "JT") opens the user menu when clicked.
+
+Clicking on the user initials icon opens the User Menu dropdown. The menu displays Profile at the top which navigates to the user's profile page. Below that, Grades shows the user's personal grades across all courses. Calendar opens the calendar view. Private files provides access to personal file storage. Reports shows user activity reports. A separator line divides these items from Preferences, which opens user settings. Another separator appears before the final Log out option that ends the session and returns to the login page.
+
+When viewing a course, Course Navigation tabs appear as a horizontal bar below the course title. The tabs include Course (the main content view), Settings (course configuration), Participants (enrolled users), Grades (gradebook), Activities (list of all activities), and a More dropdown for additional options. 
+
+When viewing an assignment or other activity, Assignment Navigation displays breadcrumbs at the top showing the navigation path from the course (e.g., "BUS301 / New section / BUS301 - Case Study Analysis"). Each breadcrumb segment is a clickable link to navigate back to that level. Below the breadcrumbs, an assignment icon and "ASSIGNMENT" label appear above the assignment name. Activity-specific tabs appear below the title: Assignment (the main view), Settings (activity configuration), Submissions (student submission list), Advanced grading (rubrics and grading forms), and a More dropdown for additional options. These tabs change based on the activity type being viewed.
