@@ -207,6 +207,22 @@ class Navigator:
     # Step History Formatting
     # ================================================================
 
+    # Dispatch table for formatting action records in step history
+    _action_formatters = {
+        "click_element":    lambda p: f"clicked element #{p.get('index')}",
+        "input_text":       lambda p: f"typed '{p.get('text', '')}' into element #{p.get('index')}",
+        "scroll_down":      lambda p: f"scrolled down {p.get('amount', 500)}px",
+        "scroll_up":        lambda p: f"scrolled up {p.get('amount', 500)}px",
+        "go_back":          lambda p: "navigated back",
+        "hover":            lambda p: f"hovered element #{p.get('index')}",
+        "select_option":    lambda p: f"selected '{p.get('value', '')}' in element #{p.get('index')}",
+        "press_key":        lambda p: f"pressed key '{p.get('key', '')}'",
+        "clear_input":      lambda p: f"cleared element #{p.get('index')}",
+        "wait_for_element": lambda p: f"waited for element with text '{p.get('text', '')}'",
+        "switch_tab":       lambda p: f"switched to tab #{p.get('tab_index')}",
+        "open_tab":         lambda p: f"opened new tab{' at ' + p['url'] if p.get('url') else ''}",
+    }
+
     def _format_step_history(self, history: List[NavigationStepRecord]) -> str:
         """Format the step history for inclusion in the LLM prompt."""
         if not history:
@@ -222,14 +238,11 @@ class Navigator:
                 for action in record.actions_executed:
                     action_name = list(action.keys())[0]
                     action_params = action[action_name]
-                    if action_name == "click_element":
-                        action_descs.append(f"clicked element #{action_params.get('index')}")
-                    elif action_name == "input_text":
-                        action_descs.append(
-                            f"typed '{action_params.get('text', '')}' into element #{action_params.get('index')}"
-                        )
-                    elif action_name == "scroll_down":
-                        action_descs.append(f"scrolled down {action_params.get('amount', 500)}px")
+                    formatter = self._action_formatters.get(action_name)
+                    if formatter:
+                        action_descs.append(formatter(action_params))
+                    else:
+                        action_descs.append(f"{action_name}({action_params})")
                 lines.append(f"- Actions taken: {', '.join(action_descs)}")
             else:
                 lines.append("- Actions taken: (none executed)")
@@ -420,7 +433,22 @@ class Navigator:
     # ================================================================
 
     def _execute_actions(self, actions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Execute a list of browser actions."""
+        """Execute a list of browser actions using dispatch table."""
+        action_handlers = {
+            "click_element":    self._handle_click_element,
+            "input_text":       self._handle_input_text,
+            "scroll_down":      self._handle_scroll_down,
+            "scroll_up":        self._handle_scroll_up,
+            "go_back":          self._handle_go_back,
+            "hover":            self._handle_hover,
+            "select_option":    self._handle_select_option,
+            "press_key":        self._handle_press_key,
+            "clear_input":      self._handle_clear_input,
+            "wait_for_element": self._handle_wait_for_element,
+            "switch_tab":       self._handle_switch_tab,
+            "open_tab":         self._handle_open_tab,
+        }
+
         actions_taken = []
         for action in actions:
             if not isinstance(action, dict) or len(action) != 1:
@@ -428,31 +456,105 @@ class Navigator:
 
             action_name = list(action.keys())[0]
             action_params = action[action_name]
+            handler = action_handlers.get(action_name)
+
+            if handler is None:
+                log(f"  [Navigator] Unknown action: {action_name}", self.debug, self.debug_file)
+                continue
 
             try:
-                if action_name == "click_element":
-                    idx = action_params.get("index")
-                    if idx is not None:
-                        self.browser_controller.execute_command("click_element", int(idx))
-                        wait_for_page(self.browser_session)
-                        actions_taken.append(action)
-
-                elif action_name == "input_text":
-                    idx = action_params.get("index")
-                    text = action_params.get("text", "")
-                    if idx is not None:
-                        self.browser_controller.execute_command("input_text", int(idx), text)
-                        actions_taken.append(action)
-
-                elif action_name == "scroll_down":
-                    amount = action_params.get("amount", 500)
-                    self.browser_controller.execute_command("scroll_down", int(amount))
+                if handler(action_params):
                     actions_taken.append(action)
-
             except Exception as e:
                 log(f"  [Navigator] Action {action_name} failed: {e}", self.debug, self.debug_file)
 
         return actions_taken
+
+    # ---- Individual action handlers ----
+
+    def _handle_click_element(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("index")
+        if idx is None:
+            return False
+        self.browser_controller.execute_command("click_element", int(idx))
+        wait_for_page(self.browser_session)
+        return True
+
+    def _handle_input_text(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("index")
+        text = params.get("text", "")
+        if idx is None:
+            return False
+        self.browser_controller.execute_command("input_text", int(idx), text)
+        return True
+
+    def _handle_scroll_down(self, params: Dict[str, Any]) -> bool:
+        amount = params.get("amount", 500)
+        self.browser_controller.execute_command("scroll_down", int(amount))
+        return True
+
+    def _handle_scroll_up(self, params: Dict[str, Any]) -> bool:
+        amount = params.get("amount", 500)
+        self.browser_controller.execute_command("scroll_up", int(amount))
+        return True
+
+    def _handle_go_back(self, params: Dict[str, Any]) -> bool:
+        self.browser_controller.execute_command("go_back")
+        wait_for_page(self.browser_session)
+        return True
+
+    def _handle_hover(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("index")
+        if idx is None:
+            return False
+        self.browser_controller.execute_command("hover", int(idx))
+        return True
+
+    def _handle_select_option(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("index")
+        value = params.get("value", "")
+        if idx is None or not value:
+            return False
+        self.browser_controller.execute_command("select_option", int(idx), value)
+        return True
+
+    def _handle_press_key(self, params: Dict[str, Any]) -> bool:
+        key = params.get("key", "")
+        if not key:
+            return False
+        self.browser_controller.execute_command("press_key", key)
+        wait_for_page(self.browser_session)
+        return True
+
+    def _handle_clear_input(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("index")
+        if idx is None:
+            return False
+        self.browser_controller.execute_command("clear_input", int(idx))
+        return True
+
+    def _handle_wait_for_element(self, params: Dict[str, Any]) -> bool:
+        text = params.get("text", "")
+        timeout = params.get("timeout", 5000)
+        if not text:
+            return False
+        self.browser_controller.execute_command("wait_for_element", text, int(timeout))
+        return True
+
+    def _handle_switch_tab(self, params: Dict[str, Any]) -> bool:
+        idx = params.get("tab_index")
+        if idx is None:
+            return False
+        self.browser_controller.execute_command("switch_tab", int(idx))
+        return True
+
+    def _handle_open_tab(self, params: Dict[str, Any]) -> bool:
+        url = params.get("url")
+        if url:
+            self.browser_controller.execute_command("open_tab", url)
+        else:
+            self.browser_controller.execute_command("open_tab")
+        return True
 
     # ================================================================
     # Fallback & Helpers
