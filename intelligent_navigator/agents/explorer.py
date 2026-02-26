@@ -10,19 +10,17 @@ Returns PageExplorerResult with all links found (visible + sub-state).
 
 import json
 from typing import Any, Dict, List
-from urllib.parse import urlparse
-
 from intelligent_navigator.core.llm import LLMClient
 from intelligent_navigator.core.models import (
     PageExplorerResult,
     PageSnapshot,
     SubStateInfo,
 )
-from intelligent_navigator.core.utils import log, get_current_title, parse_llm_json
+from intelligent_navigator.core.utils import log, get_current_title
 from intelligent_navigator.browser.dom_helper import DOMHelper
 from intelligent_navigator.exploration.link_extractor import LinkExtractor
 from intelligent_navigator.exploration.page_identity import PageIdentityComputer
-from intelligent_navigator.agents.prompts import PROMPT_PAGE_EXPLORER_SYSTEM, PROMPT_PAGE_AUTH_CLASSIFY
+from intelligent_navigator.agents.prompts import PROMPT_PAGE_EXPLORER_SYSTEM
 from intelligent_navigator.agents.sub_state import SubStateExplorer
 
 
@@ -106,9 +104,6 @@ class Explorer:
 
         has_forms = self._detect_forms(selector_map_json)
 
-        # Classify page as public or auth-required via LLM
-        requires_auth = self._classify_page_auth(current_url, current_title, selector_map_string)
-
         return PageExplorerResult(
             current_url=current_url,
             current_title=current_title,
@@ -119,7 +114,6 @@ class Explorer:
                 "has_forms": has_forms,
                 "sub_state_count": len(sub_states_info),
             },
-            page_requires_auth=requires_auth,
         )
 
     def _explore_sub_states(
@@ -187,38 +181,3 @@ class Explorer:
         except (json.JSONDecodeError, TypeError):
             pass
         return False
-
-    def _classify_page_auth(self, current_url: str, current_title: str, selector_map_string: str) -> bool:
-        """Ask LLM whether this page requires authentication. Returns True if auth required."""
-        if not selector_map_string:
-            return True  # Conservative default
-
-        # Heuristic: well-known public URL paths never need an LLM call
-        _PUBLIC_PATH_PATTERNS = (
-            "/login", "/signin", "/sign-in",
-            "/register", "/signup", "/sign-up",
-            "/forgot-password", "/reset-password",
-        )
-        parsed_path = urlparse(current_url).path.rstrip("/").lower()
-        if any(parsed_path == p or parsed_path.endswith(p) for p in _PUBLIC_PATH_PATTERNS):
-            log(f"  [Explorer] Page auth classification: requires_auth=False (heuristic URL match)", self.debug, self.debug_file)
-            return False
-
-        # Truncate to keep this call cheap
-        prompt = PROMPT_PAGE_AUTH_CLASSIFY.format(
-            page_url=current_url,
-            page_title=current_title,
-            selector_map_string=selector_map_string[:3000],
-        )
-
-        try:
-            response = self.explorer_llm.ask(prompt)
-            self.llm_call_count += 1
-            data = parse_llm_json(response)
-            result = data.get("requires_auth", True)
-            log(f"  [Explorer] Page auth classification: requires_auth={result}", self.debug, self.debug_file)
-            return bool(result)
-        except Exception as e:
-            log(f"  [Explorer] Auth classification error: {e}", self.debug, self.debug_file)
-            self.llm_call_count += 1
-            return True  # Conservative default
