@@ -586,6 +586,26 @@ class Navigator:
                 retry_attempted=True,
             )
 
+        # navigate_to succeeded (no exception) but landed on a different URL
+        # → server-side redirect (e.g., access denied → enrollment page)
+        if success:
+            log(
+                f"  [Navigator] Server redirected: {command.target_url} -> {new_url}",
+                self.debug, self.debug_file,
+            )
+            return PageNavigatorResult(
+                success=False,
+                current_url=new_url,
+                current_title=new_title,
+                failure_reason=(
+                    f"Server redirected from {command.target_url} to {new_url}. "
+                    f"The target page may require enrollment or different permissions."
+                ),
+                retry_attempted=True,
+                was_redirected=True,
+                redirected_to=new_url,
+            )
+
         return PageNavigatorResult(
             success=False,
             current_url=new_url,
