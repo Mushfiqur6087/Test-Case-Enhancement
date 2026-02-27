@@ -16,11 +16,13 @@ from intelligent_navigator.core.models import (
     PageSnapshot,
     SubStateInfo,
 )
-from intelligent_navigator.core.utils import log, get_current_title
+from intelligent_navigator.core.utils import log, get_current_title, parse_llm_json
 from intelligent_navigator.browser.dom_helper import DOMHelper
+from intelligent_navigator.browser.selector_filter import SelectorMapFilter
 from intelligent_navigator.exploration.link_extractor import LinkExtractor
 from intelligent_navigator.exploration.page_identity import PageIdentityComputer
-from intelligent_navigator.agents.prompts import PROMPT_PAGE_EXPLORER_SYSTEM
+from intelligent_navigator.exploration.page_digest import PageDigest, PageDigestCache
+from intelligent_navigator.agents.prompts import PROMPT_PAGE_EXPLORER_SYSTEM, PROMPT_PAGE_DIGEST
 from intelligent_navigator.agents.sub_state import SubStateExplorer
 
 
@@ -42,12 +44,16 @@ class Explorer:
         base_url: str,
         debug: bool = False,
         debug_file: str = None,
+        page_digest_cache: PageDigestCache = None,
+        selector_filter: SelectorMapFilter = None,
     ):
         self.browser_controller = browser_controller
         self.browser_session = browser_session
         self.base_url = base_url
         self.debug = debug
         self.debug_file = debug_file
+        self.page_digest_cache = page_digest_cache
+        self.selector_filter = selector_filter
 
         self.explorer_llm = LLMClient(
             api_key=llm_client.client.api_key,
@@ -103,6 +109,12 @@ class Explorer:
             interactive_count = 0
 
         has_forms = self._detect_forms(selector_map_json)
+
+        # Generate page digest (Pass 2: LLM filters + summarizes)
+        if self.page_digest_cache is not None and self.selector_filter is not None:
+            self._generate_page_digest(
+                current_url, current_title, selector_map_json
+            )
 
         return PageExplorerResult(
             current_url=current_url,
@@ -181,3 +193,59 @@ class Explorer:
         except (json.JSONDecodeError, TypeError):
             pass
         return False
+
+    def _generate_page_digest(
+        self, url: str, title: str, selector_map_json: str
+    ) -> None:
+        """
+        Pass 2: LLM filters the rule-based-filtered selector map and
+        generates a page summary. Result is cached per page template.
+        """
+        # Skip if already cached for this page template
+        if self.page_digest_cache.get(url) is not None:
+            log(
+                f"  [Explorer] Page digest cache hit for {url}",
+                self.debug, self.debug_file,
+            )
+            return
+
+        # Pass 1: rule-based filter
+        _, filtered_string = self.selector_filter.filter(selector_map_json)
+
+        if not filtered_string:
+            return
+
+        log(
+            f"  [Explorer] Generating page digest for {url}",
+            self.debug, self.debug_file,
+        )
+
+        # Pass 2: LLM further filters + summarizes
+        prompt = PROMPT_PAGE_DIGEST.format(
+            page_title=title,
+            page_url=url,
+            selector_map_string=filtered_string[:6000],
+        )
+
+        try:
+            response = self.explorer_llm.ask(prompt)
+            self.llm_call_count += 1
+            data = parse_llm_json(response)
+
+            digest = PageDigest(
+                summary=data.get("summary", ""),
+                keep_indexes=set(data.get("keep_indexes", [])),
+            )
+            self.page_digest_cache.store(url, digest)
+
+            log(
+                f"  [Explorer] Page digest: {len(digest.keep_indexes)} elements kept, "
+                f"summary: {digest.summary[:80]}",
+                self.debug, self.debug_file,
+            )
+        except Exception as e:
+            log(
+                f"  [Explorer] Page digest generation error: {e}",
+                self.debug, self.debug_file,
+            )
+            self.llm_call_count += 1

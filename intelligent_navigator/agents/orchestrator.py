@@ -36,10 +36,12 @@ from intelligent_navigator.core.utils import (
 )
 from intelligent_navigator.exploration.graph import NavigationGraph
 from intelligent_navigator.exploration.page_identity import PageIdentityComputer
+from intelligent_navigator.exploration.page_digest import PageDigestCache
 from intelligent_navigator.exploration.queue import ExplorationQueue
 from intelligent_navigator.exploration.loop_detector import LoopDetector
 from intelligent_navigator.exploration.credentials import CredentialParser
 from intelligent_navigator.browser.controller import BrowserController
+from intelligent_navigator.browser.selector_filter import SelectorMapFilter
 from intelligent_navigator.agents.navigator import Navigator
 from intelligent_navigator.agents.explorer import Explorer
 from intelligent_navigator.agents.link_curator import LinkCurator
@@ -104,6 +106,18 @@ class Orchestrator:
         self.browser_controller = BrowserController(llm_client=self._base_llm)
         self.browser_session = self.browser_controller.browser_context
 
+        # --- Exploration state ---
+        self.page_identity_computer = PageIdentityComputer(self.base_url)
+        self.queue = ExplorationQueue()
+        self.graph = NavigationGraph()
+        self.loop_detector = LoopDetector()
+        self.credential_parser = CredentialParser(self._base_llm)
+        self.credentials: List[RoleCredentials] = []
+
+        # --- Shared filtering objects (used by Navigator + Explorer) ---
+        self.selector_filter = SelectorMapFilter()
+        self.page_digest_cache = PageDigestCache(self.page_identity_computer)
+
         # --- Sub-agents ---
         self.navigator = Navigator(
             llm_client=self._base_llm,
@@ -111,6 +125,8 @@ class Orchestrator:
             browser_session=self.browser_session,
             debug=self.debug,
             debug_file=self.debug_file,
+            selector_filter=self.selector_filter,
+            page_digest_cache=self.page_digest_cache,
         )
         self.explorer = Explorer(
             llm_client=self._base_llm,
@@ -119,15 +135,9 @@ class Orchestrator:
             base_url=self.base_url,
             debug=self.debug,
             debug_file=self.debug_file,
+            page_digest_cache=self.page_digest_cache,
+            selector_filter=self.selector_filter,
         )
-
-        # --- Exploration state ---
-        self.page_identity_computer = PageIdentityComputer(self.base_url)
-        self.queue = ExplorationQueue()
-        self.graph = NavigationGraph()
-        self.loop_detector = LoopDetector()
-        self.credential_parser = CredentialParser(self._base_llm)
-        self.credentials: List[RoleCredentials] = []
 
         # --- Link Curator (filters links before queue insertion) ---
         self.link_curator = LinkCurator(

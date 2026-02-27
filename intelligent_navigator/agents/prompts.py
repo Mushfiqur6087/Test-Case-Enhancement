@@ -175,7 +175,7 @@ Respond with ONLY valid JSON using single braces. Example structure:
 PROMPT_PAGE_NAVIGATOR_STEP = """## Current Page (Step {step_number})
 URL: {current_url}
 Title: {current_title}
-
+{page_context}
 ## Interactive Elements (use index for actions)
 {selector_map_string}
 
@@ -299,3 +299,36 @@ Each entry shows a normalized URL pattern, how many links match it, and example 
 {graph_summary}
 
 For each pattern above, decide whether to "keep" one representative link for the exploration queue or "skip" the entire group. Respond with ONLY valid JSON."""
+
+
+# =====================================================================
+# 5. PAGE DIGEST PROMPT
+# =====================================================================
+
+PROMPT_PAGE_DIGEST = """You are analyzing a web page's interactive elements for a navigation agent.
+Your job: identify which elements are useful for NAVIGATION, and write a one-sentence page summary.
+
+Page: {page_title} ({page_url})
+
+Interactive elements (pre-filtered):
+{selector_map_string}
+
+## What to KEEP
+- Navigation links (<a> with href to other pages)
+- Form inputs (text fields, dropdowns, checkboxes, search bars)
+- Buttons that trigger navigation or submit forms
+- Menu items and dropdown toggles
+- Mode toggles (e.g., edit mode switches)
+
+## What to REMOVE
+- Elements that duplicate information already shown by another element in the list
+- Elements with no navigation purpose (pure data display, decorative)
+- Redundant entries that point to the same destination as an already-kept element
+
+When in doubt, KEEP the element. Missing a useful element is worse than including an extra one.
+
+Respond with ONLY valid JSON:
+{{
+  "summary": "One sentence describing what this page is and its main sections/features",
+  "keep_indexes": [0, 1, 2, 3]
+}}"""

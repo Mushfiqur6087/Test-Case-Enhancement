@@ -25,6 +25,8 @@ from intelligent_navigator.core.utils import (
     get_current_url, get_current_title,
 )
 from intelligent_navigator.browser.dom_helper import DOMHelper
+from intelligent_navigator.browser.selector_filter import SelectorMapFilter
+from intelligent_navigator.exploration.page_digest import PageDigestCache
 from intelligent_navigator.agents.prompts import (
     PROMPT_PAGE_NAVIGATOR_SYSTEM,
     PROMPT_PAGE_NAVIGATOR_STEP,
@@ -47,11 +49,15 @@ class Navigator:
         browser_session,
         debug: bool = False,
         debug_file: str = None,
+        selector_filter: SelectorMapFilter = None,
+        page_digest_cache: PageDigestCache = None,
     ):
         self.browser_controller = browser_controller
         self.browser_session = browser_session
         self.debug = debug
         self.debug_file = debug_file
+        self.selector_filter = selector_filter
+        self.page_digest_cache = page_digest_cache
 
         self.navigator_llm = LLMClient(
             api_key=llm_client.client.api_key,
@@ -93,12 +99,11 @@ class Navigator:
     # ================================================================
 
     def _handle_navigation(self, command: NavigatorCommand) -> PageNavigatorResult:
-        """Navigate to a target page using a multi-step approach.
+        """Navigate to a target page using a multi-step approach."""
 
-        Each step: capture DOM -> ask LLM (with graph context + history) ->
-        execute actions -> check if target reached. Loops up to
-        MAX_NAVIGATION_STEPS before falling back to direct URL.
-        """
+
+
+        # --- Multi-step LLM navigation loop ---
         all_actions_taken: List[Dict[str, Any]] = []
         step_history: List[NavigationStepRecord] = []
 
@@ -110,7 +115,14 @@ class Navigator:
 
             # 1. Dismiss overlays and capture the DOM
             self._dismiss_overlays()
-            _, selector_map_string = self.dom_helper.scroll_and_capture()
+            selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
+
+            # Apply two-pass filtering
+            page_context = ""
+            selector_map_string = self._filter_selector_map(
+                selector_map_json, selector_map_string
+            )
+            page_context = self._get_page_context(get_current_url(self.browser_session))
 
             current_url = get_current_url(self.browser_session)
             current_title = get_current_title(self.browser_session)
@@ -135,6 +147,7 @@ class Navigator:
                 current_url, current_title, selector_map_string, command,
                 step_number=step_num,
                 step_history=history_string,
+                page_context=page_context,
             )
 
             # 4. Handle return_to_orchestrator signal
@@ -273,7 +286,10 @@ class Navigator:
                     )
                 wait_for_page(self.browser_session)
 
-        _, selector_map_string = self.dom_helper.scroll_and_capture()
+        selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
+        selector_map_string = self._filter_selector_map(
+            selector_map_json, selector_map_string
+        )
         current_url = get_current_url(self.browser_session)
         current_title = get_current_title(self.browser_session)
 
@@ -286,7 +302,8 @@ class Navigator:
             )
 
         actions, _, _ = self._ask_llm_for_actions(
-            current_url, current_title, selector_map_string, command
+            current_url, current_title, selector_map_string, command,
+            page_context=self._get_page_context(current_url),
         )
 
         if not actions:
@@ -323,7 +340,10 @@ class Navigator:
     def _handle_logout(self, command: NavigatorCommand) -> PageNavigatorResult:
         """Handle a logout command: find and click the logout link."""
         self._dismiss_overlays()
-        _, selector_map_string = self.dom_helper.scroll_and_capture()
+        selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
+        selector_map_string = self._filter_selector_map(
+            selector_map_json, selector_map_string
+        )
         current_url = get_current_url(self.browser_session)
         current_title = get_current_title(self.browser_session)
 
@@ -333,7 +353,8 @@ class Navigator:
             target_label="Logout",
         )
         actions, _, _ = self._ask_llm_for_actions(
-            current_url, current_title, selector_map_string, logout_command
+            current_url, current_title, selector_map_string, logout_command,
+            page_context=self._get_page_context(current_url),
         )
 
         if not actions:
@@ -360,6 +381,87 @@ class Navigator:
         )
 
     # ================================================================
+    # Selector Map Filtering
+    # ================================================================
+
+    def _filter_selector_map(
+        self, selector_map_json: str, selector_map_string: str
+    ) -> str:
+        """
+        Apply two-pass filtering to the selector map.
+
+        Pass 1 (rule-based): Always applied — removes obvious DOM noise.
+        Pass 2 (LLM-cached): If a page digest exists for this URL's template,
+        further filter to only the LLM-recommended element indexes.
+
+        Returns the filtered selector map string.
+        """
+        if not self.selector_filter:
+            return selector_map_string
+
+        # Pass 1: rule-based filter
+        filtered_json, filtered_string = self.selector_filter.filter(
+            selector_map_json
+        )
+
+        # Pass 2: apply cached LLM digest if available
+        current_url = get_current_url(self.browser_session)
+        if self.page_digest_cache:
+            digest = self.page_digest_cache.get(current_url)
+            if digest and digest.keep_indexes:
+                return self._apply_digest_filter(
+                    filtered_json, digest.keep_indexes
+                )
+
+        return filtered_string
+
+    def _get_page_context(self, url: str) -> str:
+        """Return cached page summary for this URL, or empty string."""
+        if not self.page_digest_cache:
+            return ""
+        digest = self.page_digest_cache.get(url)
+        if digest and digest.summary:
+            return f"Page summary: {digest.summary}"
+        return ""
+
+    def _apply_digest_filter(
+        self, filtered_json: str, keep_indexes: set
+    ) -> str:
+        """Build selector map string with only the LLM-recommended indexes."""
+        import json as _json
+        _skip_attrs = {"class", "style"}
+
+        try:
+            elements = _json.loads(filtered_json)
+        except (_json.JSONDecodeError, TypeError):
+            return ""
+
+        lines = []
+        for idx_str in sorted(elements.keys(), key=lambda x: int(x)):
+            if int(idx_str) not in keep_indexes:
+                continue
+            elem = elements[idx_str]
+            tag = elem.get("tag_name", "")
+            attrs = elem.get("attributes", {})
+            inner_text = elem.get("inner_text") or ""
+
+            attr_parts = []
+            for k, v in attrs.items():
+                if k not in _skip_attrs and v != "":
+                    attr_parts.append(f"{k}='{v}'")
+            attrs_str = " " + " ".join(attr_parts) if attr_parts else ""
+
+            if inner_text:
+                inner_text = " ".join(inner_text.split())
+                if len(inner_text) > 100:
+                    inner_text = inner_text[:100] + "..."
+            text_str = f" inner_text='{inner_text}'" if inner_text else ""
+
+            lines.append(f"[{idx_str}]<{tag}{attrs_str}{text_str} />")
+
+        return "\n".join(lines)
+
+    # ================================================================
     # LLM Interaction
     # ================================================================
 
@@ -371,6 +473,7 @@ class Navigator:
         command: NavigatorCommand,
         step_number: int = 1,
         step_history: str = "",
+        page_context: str = "",
     ) -> Tuple[List[Dict[str, Any]], bool, str]:
         """Ask the Navigator LLM which elements to interact with.
 
@@ -405,6 +508,7 @@ class Navigator:
             step_number=step_number,
             current_url=current_url,
             current_title=current_title,
+            page_context=page_context,
             selector_map_string=selector_map_string[:12000] if selector_map_string else "(empty page)",
             command_type=command.command_type,
             target_url=command.target_url,
