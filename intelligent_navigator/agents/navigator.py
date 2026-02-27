@@ -11,7 +11,7 @@ For login commands, fills the login form with provided credentials.
 Falls back to direct URL navigation only after exhausting the multi-step loop.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from intelligent_navigator.core.llm import LLMClient
@@ -101,7 +101,10 @@ class Navigator:
     def _handle_navigation(self, command: NavigatorCommand) -> PageNavigatorResult:
         """Navigate to a target page using a multi-step approach."""
 
-
+        # --- Try direct URL first (fast path, 0 LLM calls) ---
+        direct_result = self._try_direct_url(command)
+        if direct_result is not None:
+            return direct_result
 
         # --- Multi-step LLM navigation loop ---
         all_actions_taken: List[Dict[str, Any]] = []
@@ -663,6 +666,70 @@ class Navigator:
     # ================================================================
     # Fallback & Helpers
     # ================================================================
+
+    def _try_direct_url(self, command: NavigatorCommand) -> Optional[PageNavigatorResult]:
+        """Try navigating directly to target URL before multi-step loop.
+
+        Returns:
+            PageNavigatorResult if target reached or redirect detected.
+            None if direct navigation failed (caller should use multi-step loop).
+        """
+        if not command.target_url:
+            return None
+
+        original_url = get_current_url(self.browser_session)
+
+        log(
+            f"  [Navigator] Trying direct URL: {command.target_url}",
+            self.debug, self.debug_file,
+        )
+        success = self.browser_controller.execute_command(
+            "navigate_to", command.target_url
+        )
+        wait_for_page(self.browser_session)
+
+        new_url = get_current_url(self.browser_session)
+        new_title = get_current_title(self.browser_session)
+
+        if success and self._is_target_reached(new_url, command.target_url):
+            log(
+                f"  [Navigator] Direct URL reached target: {new_url}",
+                self.debug, self.debug_file,
+            )
+            return PageNavigatorResult(
+                success=True,
+                current_url=new_url,
+                current_title=new_title,
+                actions_taken=[{"navigate_to": {"url": command.target_url}}],
+                navigation_steps=0,
+            )
+
+        if success:
+            # navigate_to succeeded but URL differs → server-side redirect
+            log(
+                f"  [Navigator] Redirect detected: {command.target_url} -> {new_url}",
+                self.debug, self.debug_file,
+            )
+            return PageNavigatorResult(
+                success=False,
+                current_url=new_url,
+                current_title=new_title,
+                failure_reason=(
+                    f"Server redirected from {command.target_url} to {new_url}. "
+                    f"The target page may require enrollment or different permissions."
+                ),
+                was_redirected=True,
+                redirected_to=new_url,
+            )
+
+        # navigate_to failed entirely — go back, let multi-step handle it
+        log(
+            f"  [Navigator] Direct URL failed, falling back to multi-step.",
+            self.debug, self.debug_file,
+        )
+        self.browser_controller.execute_command("navigate_to", original_url)
+        wait_for_page(self.browser_session)
+        return None
 
     def _retry_direct(self, command: NavigatorCommand) -> PageNavigatorResult:
         """Retry navigation using direct URL as fallback."""

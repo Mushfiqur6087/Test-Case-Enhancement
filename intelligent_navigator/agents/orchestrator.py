@@ -299,31 +299,26 @@ class Orchestrator:
             self._log(f"  Navigation failed: {nav_result.failure_reason}")
 
             if nav_result.was_redirected:
-                # Server redirect (e.g., access denied → enrollment page)
-                # Don't mark as permanently unreachable — it may become
-                # reachable after enrollment or with different permissions.
                 self._last_action_feedback = (
                     f"REDIRECTED: Tried to reach {decision.target_url} ({decision.target_label}), "
                     f"but the server redirected to {nav_result.redirected_to}.\n"
-                    f"This likely means the current user lacks access (e.g., not enrolled in the course).\n"
-                    f"Consider: skip this page via queue_removals, or enroll the user first if possible."
+                    f"Page marked as unreachable. Moving to next page."
                 )
             else:
                 self._last_action_feedback = (
                     f"FAILED to reach {decision.target_url} ({decision.target_label}).\n"
                     f"Reason: {nav_result.failure_reason}\n"
-                    f"Currently on: {nav_result.current_url}\n"
-                    f"Consider: login first if auth is needed, try a different path, or skip this page."
+                    f"Page marked as unreachable. Moving to next page."
                 )
-                # Only mark as permanently unreachable for genuine failures
-                if nav_result.retry_attempted:
-                    candidate = self.page_identity_computer.compute(
-                        decision.target_url, self.current_role
-                    )
-                    existing = self.graph.find_node_by_path(
-                        candidate.normalized_path, candidate.structural_params
-                    )
-                    self.graph.mark_unreachable(existing if existing else candidate)
+
+            # Mark as unreachable for ALL failure types (redirect or otherwise)
+            candidate = self.page_identity_computer.compute(
+                decision.target_url, self.current_role
+            )
+            existing = self.graph.find_node_by_path(
+                candidate.normalized_path, candidate.structural_params
+            )
+            self.graph.mark_unreachable(existing if existing else candidate)
             return
 
         # Step 2: Explorer extracts everything from the page
