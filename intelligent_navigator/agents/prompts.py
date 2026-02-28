@@ -332,3 +332,33 @@ Respond with ONLY valid JSON:
   "summary": "One sentence describing what this page is and its main sections/features",
   "keep_indexes": [0, 1, 2, 3]
 }}"""
+
+
+# =====================================================================
+# 6. QUEUE PRUNER PROMPT
+# =====================================================================
+
+PROMPT_QUEUE_PRUNER = """You are analyzing an exploration queue to remove pages that are NOT needed.
+
+## Goal
+The system must fully traverse this navigation structure:
+{expected_pages}
+
+## Already Visited Pages (with summaries)
+{visited_summaries}
+
+## Current Queue (unvisited)
+{queue_items}
+
+## Instructions
+- Look at each unvisited URL and its label
+- Decide if it is NECESSARY for completing the full traversal of the navigation above
+- KEEP pages that lead to unexplored sections of the navigation structure
+- REMOVE pages that are: duplicates of already-visited content, not part of the navigation spec, administrative/settings pages unless required, enrollment or access-denied pages
+- When in doubt, KEEP the page
+
+Respond with ONLY valid JSON:
+{{
+  "reasoning": "Brief explanation of what you're removing and why",
+  "blacklist": ["url1", "url2", ...]
+}}"""

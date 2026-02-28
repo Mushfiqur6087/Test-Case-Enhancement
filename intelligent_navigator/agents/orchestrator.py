@@ -48,6 +48,7 @@ from intelligent_navigator.agents.link_curator import LinkCurator
 from intelligent_navigator.agents.prompts import (
     PROMPT_NAVIGATOR_SYSTEM,
     PROMPT_NAVIGATOR_STEP,
+    PROMPT_QUEUE_PRUNER,
 )
 
 
@@ -149,6 +150,7 @@ class Orchestrator:
 
         # Feedback state (passed into next Orchestrator prompt)
         self._last_action_feedback = "This is the start of exploration. No actions taken yet."
+        self._pages_since_last_prune = 0
 
     # ================================================================
     # Public API
@@ -495,6 +497,12 @@ class Orchestrator:
             f"{new_links_added} curated to queue"
         )
 
+        # --- Phase C: Periodic queue pruning ---
+        self._pages_since_last_prune += 1
+        if self._pages_since_last_prune >= 3 and self.queue.unvisited_count > 0:
+            self._prune_queue()
+            self._pages_since_last_prune = 0
+
     # ================================================================
     # Orchestrator LLM
     # ================================================================
@@ -587,6 +595,57 @@ class Orchestrator:
             )
         except Exception:
             return None
+
+    # ================================================================
+    # Queue Pruner
+    # ================================================================
+
+    def _prune_queue(self) -> None:
+        """Periodically ask LLM to blacklist unnecessary queue items."""
+        self._log("  [Pruner] Running queue pruning...")
+
+        # Build visited page summaries from PageDigestCache + graph
+        graph_data = self.graph.serialize()
+        visited_summaries = []
+        for node in graph_data.get("nodes", []):
+            if node.get("state") in ("visited", "fully_explored"):
+                title = node.get("title", "Unknown")
+                urls = node.get("urls", [])
+                url = urls[0] if urls else ""
+                digest = self.page_digest_cache.get(url) if url else None
+                summary = digest.summary if digest else "(no summary)"
+                visited_summaries.append(f"- {title} ({url}): {summary}")
+
+        visited_str = "\n".join(visited_summaries) if visited_summaries else "(none)"
+
+        # Build queue items list
+        queue_lines = []
+        for item in self.queue._unvisited:
+            label_str = f" - {item.label}" if item.label else ""
+            queue_lines.append(f"- {item.url}{label_str}")
+        queue_str = "\n".join(queue_lines)
+
+        prompt = PROMPT_QUEUE_PRUNER.format(
+            expected_pages=self.expected_pages,
+            visited_summaries=visited_str,
+            queue_items=queue_str,
+        )
+
+        try:
+            response = self.orchestrator_llm.ask(prompt)
+            self.llm_call_count += 1
+            data = parse_llm_json(response)
+            blacklist_urls = data.get("blacklist", [])
+            if blacklist_urls:
+                removed = self.queue.blacklist_batch(blacklist_urls)
+                self._log(
+                    f"  [Pruner] Blacklisted {removed} URLs from queue "
+                    f"({len(blacklist_urls)} requested)"
+                )
+            else:
+                self._log("  [Pruner] No URLs to blacklist.")
+        except Exception as e:
+            self._log(f"  [Pruner] Failed: {e}")
 
     # ================================================================
     # Helpers

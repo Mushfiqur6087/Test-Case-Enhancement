@@ -13,10 +13,13 @@ class ExplorationQueue:
         self._visited: List[QueueItem] = []
         self._skipped: List[QueueItem] = []
         self._all_urls: Set[str] = set()
+        self._blacklist: Set[str] = set()
 
     def add(self, item: QueueItem) -> bool:
-        """Add a URL to the unvisited queue. Returns False if already tracked."""
+        """Add a URL to the unvisited queue. Returns False if already tracked or blacklisted."""
         if item.url in self._all_urls:
+            return False
+        if item.url in self._blacklist:
             return False
         self._all_urls.add(item.url)
         self._unvisited.append(item)
@@ -51,6 +54,18 @@ class ExplorationQueue:
         """Mark multiple URLs as skipped."""
         for url in urls:
             self.mark_skipped(url)
+
+    def blacklist_batch(self, urls: List[str]) -> int:
+        """Blacklist URLs: remove from unvisited queue and prevent future adds."""
+        removed = 0
+        for url in urls:
+            self._blacklist.add(url)
+            for i, item in enumerate(self._unvisited):
+                if item.url == url:
+                    self._skipped.append(self._unvisited.pop(i))
+                    removed += 1
+                    break
+        return removed
 
     def is_known(self, url: str) -> bool:
         """Check if a URL is already tracked in any list."""
