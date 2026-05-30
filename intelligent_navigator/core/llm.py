@@ -1,17 +1,34 @@
-"""LLM client wrapper for the Intelligent Navigator."""
+"""LLM client wrapper using LiteLLM for unified provider routing.
 
-from openai import OpenAI
+Drop-in for any OpenAI-compatible or other provider.
+Model strings follow LiteLLM convention:
+    openai/gpt-5-mini
+    openai/gpt-4o-mini
+    anthropic/claude-3-5-sonnet-20241022
+    openrouter/anthropic/claude-3.5-sonnet
+    github/gpt-4o
+
+``litellm.drop_params = True`` silently removes any parameter a model doesn't
+support (e.g. temperature on reasoning models) — no manual detection needed.
+"""
+
+import litellm  # type: ignore
+from typing import Optional
+
+# Silently drop unsupported params per model/provider (e.g. temperature on
+# o-series reasoning models). This is the clean, provider-agnostic solution.
+litellm.drop_params = True
 
 
 class LLMClient:
     def __init__(
         self,
         api_key: str,
-        model_name: str = "gpt-4o-mini",
+        model_name: str = "openai/gpt-4o-mini",
         system_prompt: str = "You are a helpful assistant.",
         debug_file: str = None,
     ):
-        self.client = OpenAI(api_key=api_key)
+        self.api_key = api_key
         self.model_name = model_name
         self.system_prompt = system_prompt
         self.debug_file = debug_file
@@ -19,17 +36,20 @@ class LLMClient:
         self._system_prompt_logged = False
 
     def ask(self, user_prompt: str) -> str:
-        """Send a prompt to the model and return the response."""
+        """Send a prompt to the model via LiteLLM and return the response."""
         self._call_count += 1
         call_num = self._call_count
 
-        response = self.client.chat.completions.create(
+        response = litellm.completion(
             model=self.model_name,
+            api_key=self.api_key,
             messages=[
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
-            temperature=0.2
+            temperature=0.2,   # dropped automatically for models that reject it
+            num_retries=2,
+            timeout=120,
         )
         result = response.choices[0].message.content
 

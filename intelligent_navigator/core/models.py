@@ -1,72 +1,12 @@
 """
-Data models for the Intelligent Navigator exploration pipeline.
-All dataclasses used by the exploration system.
+Data models for the Intelligent Navigator spec verification pipeline.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 
-class NodeState(Enum):
-    UNDISCOVERED = "undiscovered"
-    VISITED = "visited"
-    FULLY_EXPLORED = "fully_explored"
-    UNREACHABLE = "unreachable"
-
-
-@dataclass
-class PageIdentity:
-    """Unique identifier for a page template. The core deduplication key."""
-    role: str
-    normalized_path: str
-    structural_params: Dict[str, str]
-
-    def __hash__(self) -> int:
-        return hash((self.role, self.normalized_path,
-                     frozenset(self.structural_params.items())))
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, PageIdentity):
-            return False
-        return (self.role == other.role and
-                self.normalized_path == other.normalized_path and
-                self.structural_params == other.structural_params)
-
-    def with_role(self, new_role: str) -> "PageIdentity":
-        """Return a copy with a different role."""
-        return PageIdentity(
-            role=new_role,
-            normalized_path=self.normalized_path,
-            structural_params=dict(self.structural_params),
-        )
-
-    def to_key_string(self) -> str:
-        """Deterministic string for serialization and display."""
-        params_str = "&".join(
-            f"{k}={v}" for k, v in sorted(self.structural_params.items())
-        )
-        return f"({self.role}){self.normalized_path}{'?' + params_str if params_str else ''}"
-
-
-@dataclass
-class NavigationEdge:
-    """A directed edge in the navigation graph."""
-    source_identity_key: str
-    target_identity_key: str
-    action_description: str
-    source_url: str = ""
-    target_url: str = ""
-
-
-@dataclass
-class NavigationNode:
-    """A node in the navigation graph."""
-    identity: PageIdentity
-    state: NodeState = NodeState.UNDISCOVERED
-    urls: List[str] = field(default_factory=list)
-    title: str = ""
-
+# ---- Navigator Models ----
 
 @dataclass
 class RoleCredentials:
@@ -78,67 +18,33 @@ class RoleCredentials:
 
 
 @dataclass
-class QueueItem:
-    """An item in the exploration queue, managed by the LLM."""
-    url: str
-    label: str
-    source_page: str
-    reason: str
-
-
-@dataclass
-class ExplorationResult:
-    """The final output structure -- navigation graph + exploration metadata."""
-    project_url: str
-    captured_at: str
-    roles_explored: List[str]
-    navigation_graph: Dict[str, Any]
-    exploration_stats: Dict[str, Any]
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize to a plain dict for JSON output."""
-        return {
-            "project_url": self.project_url,
-            "captured_at": self.captured_at,
-            "roles_explored": self.roles_explored,
-            "navigation_graph": self.navigation_graph,
-            "exploration_stats": self.exploration_stats,
-        }
-
-
-# ---- Three-Agent Communication Models ----
-
-@dataclass
 class NavigatorCommand:
-    """Command sent from Orchestrator -> Navigator.
+    """Command sent from SpecVerifier → Navigator.
 
     command_type:
-        - explore_page: navigate to target_url, then Explorer takes over
-        - login: navigate to target_url (login page) and fill credentials
-        - logout: click the logout link on the current page
-        - done: exploration complete, stop
+        - explore_page : navigate to target_url so we can capture its DOM
+        - login        : navigate to the login page and fill credentials
+        - logout       : click the logout link on the current page
     """
-    command_type: str  # "explore_page" | "login" | "logout" | "done"
+    command_type: str   # "explore_page" | "login" | "logout"
     target_url: str = ""
     target_label: str = ""
     credentials: Optional[RoleCredentials] = None
     reasoning: str = ""
-    navigation_graph_context: str = ""  # Compact site map for multi-hop route planning
-    source_page_url: str = ""  # Page where the target link was originally discovered
 
 
 @dataclass
 class PageNavigatorResult:
-    """Result returned from Navigator -> Orchestrator."""
+    """Result returned from Navigator → SpecVerifier."""
     success: bool
     current_url: str = ""
     current_title: str = ""
     failure_reason: str = ""
     actions_taken: List[Dict[str, Any]] = field(default_factory=list)
     retry_attempted: bool = False
-    navigation_steps: int = 0  # How many LLM steps the Navigator loop took
-    was_redirected: bool = False  # True if server redirected to a different URL
-    redirected_to: str = ""  # The URL the server redirected to
+    navigation_steps: int = 0
+    was_redirected: bool = False
+    redirected_to: str = ""
 
 
 @dataclass
@@ -154,52 +60,82 @@ class NavigationStepRecord:
     reasoning: str = ""
 
 
-@dataclass
-class SubStateInfo:
-    """Summary of a single sub-state discovered by Explorer."""
-    trigger_description: str
-    trigger_type: str  # "tab" | "modal" | "dropdown" | "collapsible" | "radio" | etc.
-    new_links: List[Dict[str, Any]] = field(default_factory=list)
-
+# ---- Spec Verifier Models ----
 
 @dataclass
-class PageExplorerResult:
-    """Result returned from Explorer -> Orchestrator."""
-    current_url: str
-    current_title: str
-    links_found: List[Dict[str, Any]] = field(default_factory=list)
-    sub_states_found: List[SubStateInfo] = field(default_factory=list)
-    page_metadata: Dict[str, Any] = field(default_factory=dict)
+class SpecSection:
+    """One section of a functional description document."""
+    name: str                    # e.g. "Login", "Register"
+    raw_text: str                # Full markdown text of this section
+    url_hint: str = ""           # Best-guess URL path, e.g. "/login"
+    requires_auth: bool = False  # True if this section implies a logged-in state
 
 
 @dataclass
-class NavigatorDecision:
-    """Parsed LLM response from the Orchestrator."""
-    reasoning: str
-    next_action: str  # "explore_page" | "login" | "logout" | "done"
-    target_url: str = ""
-    target_label: str = ""
-    credential_role: str = ""
-    queue_additions: List[QueueItem] = field(default_factory=list)
-    queue_removals: List[str] = field(default_factory=list)
+class SectionVerificationResult:
+    """The spec checker's verdict for one SpecSection."""
+    section_name: str
+    url_hint: str
+    actual_url: str              # URL the browser landed on
+    actual_title: str            # Page title the browser saw
+    verdict: str                 # "pass" | "partial" | "fail" | "skipped"
+    compliance_score: int        # 0-100
+    matches: List[str] = field(default_factory=list)
+    missing: List[str] = field(default_factory=list)
+    mismatches: List[str] = field(default_factory=list)
+    notes: str = ""
+    navigation_success: bool = True
+    navigation_failure_reason: str = ""
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "section_name": self.section_name,
+            "url_hint": self.url_hint,
+            "actual_url": self.actual_url,
+            "actual_title": self.actual_title,
+            "verdict": self.verdict,
+            "compliance_score": self.compliance_score,
+            "matches": self.matches,
+            "missing": self.missing,
+            "mismatches": self.mismatches,
+            "notes": self.notes,
+            "navigation_success": self.navigation_success,
+            "navigation_failure_reason": self.navigation_failure_reason,
+        }
 
-# ---- Sub-state exploration models ----
 
 @dataclass
-class PageSnapshot:
-    """A captured snapshot of a page's state."""
-    url: str
-    title: str
-    selector_map_json: str
-    selector_map_string: str
+class VerificationReport:
+    """Full output of a spec verification run."""
+    project_url: str
+    functional_desc_file: str
+    captured_at: str
+    sections_checked: int
+    passed: int
+    partial: int
+    failed: int
+    skipped: int
+    overall_score: float           # Weighted average compliance score
+    section_results: List[SectionVerificationResult] = field(default_factory=list)
+    llm_calls_total: int = 0
+    verification_stats: Dict[str, Any] = field(default_factory=dict)
 
-
-@dataclass
-class SubStateSnapshot:
-    """A snapshot of a sub-state revealed by a trigger interaction."""
-    trigger_description: str
-    trigger_element_index: int
-    trigger_type: str
-    selector_map_json: str = ""
-    new_links_found: List[str] = field(default_factory=list)
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "project_url": self.project_url,
+            "functional_desc_file": self.functional_desc_file,
+            "captured_at": self.captured_at,
+            "summary": {
+                "sections_checked": self.sections_checked,
+                "passed": self.passed,
+                "partial": self.partial,
+                "failed": self.failed,
+                "skipped": self.skipped,
+                "overall_score": round(self.overall_score, 1),
+            },
+            "section_results": [r.to_dict() for r in self.section_results],
+            "verification_stats": {
+                **self.verification_stats,
+                "llm_calls_total": self.llm_calls_total,
+            },
+        }

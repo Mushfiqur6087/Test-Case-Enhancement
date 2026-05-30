@@ -1,17 +1,18 @@
 """
-CLI entry point for the Intelligent Navigator.
+CLI entry point for the Intelligent Navigator — Spec Compliance Verifier.
+
+Configuration priority (highest to lowest):
+  1. CLI flags          --api-key, --model, --url, etc.
+  2. .env file          LLM_MODEL, OPENAI_API_KEY, TARGET_URL, etc.
+  3. Environment vars   OPENAI_API_KEY (standard)
 
 Usage:
-    python -m intelligent_navigator \
-        --url http://localhost:8080 \
-        --credentials path/to/credentials.md \
-        --functional-desc path/to/functional_desc.txt \
-        --output output/ \
-        --api-key "sk-..." \
-        --model gpt-4o \
-        --max-steps 100 \
-        --max-pages 50 \
-        --max-llm-calls 150 \
+    python -m intelligent_navigator \\
+        --url http://localhost:8080 \\
+        --functional-desc input/parabank/Parabank.md \\
+        --credentials input/parabank/Mock_Data.md \\
+        --output output/ \\
+        --model openai/gpt-5-mini \\
         --debug
 """
 
@@ -19,111 +20,133 @@ import argparse
 import os
 import sys
 
-from intelligent_navigator.agents.orchestrator import Orchestrator
+# Suppress noisy LiteLLM provider warnings (botocore, sagemaker, etc.)
+# before litellm is imported anywhere in the package.
+os.environ.setdefault("LITELLM_LOG", "ERROR")
+
+from dotenv import load_dotenv  # type: ignore
+
+# Load .env from the project root (silently ignored if missing)
+load_dotenv(override=False)
 
 
 def main():
+    # Pull defaults from .env / environment
+    env_api_key = (
+        os.getenv("OPENAI_API_KEY")
+        or os.getenv("ANTHROPIC_API_KEY")
+        or os.getenv("OPENROUTER_API_KEY")
+        or ""
+    )
+    env_model   = os.getenv("LLM_MODEL", "openai/gpt-4o-mini")
+    env_url     = os.getenv("TARGET_URL", "")
+    env_output  = os.getenv("OUTPUT_DIR", "output")
+    env_debug   = os.getenv("DEBUG", "false").lower() == "true"
+
     parser = argparse.ArgumentParser(
-        description="Intelligent Navigator -- LLM-guided web exploration agent"
+        description="Intelligent Navigator — Spec Compliance Verifier",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+
     parser.add_argument(
-        "--url", required=True, help="Base URL of the web application"
-    )
-    parser.add_argument(
-        "--credentials", default="", help="Path to credentials markdown file"
+        "--url",
+        default=env_url or None,
+        required=not env_url,
+        help="Base URL of the web application to verify (env: TARGET_URL)",
     )
     parser.add_argument(
         "--functional-desc",
-        default="",
-        help="Path to functional description text file",
+        required=True,
+        help="Path to the functional description markdown file (e.g. Parabank.md)",
     )
     parser.add_argument(
-        "--navigation",
+        "--credentials",
         default="",
-        help="Path to Navigation.md file (expected pages checklist)",
+        help="Path to credentials markdown file (username / password / role)",
     )
     parser.add_argument(
-        "--output", default="output", help="Output directory (default: output)"
+        "--output",
+        default=env_output,
+        help=f"Output directory (env: OUTPUT_DIR, default: {env_output})",
     )
     parser.add_argument(
         "--api-key",
         default=None,
-        help="OpenAI API key (or set OPENAI_API_KEY env var)",
+        help="LLM API key — overrides OPENAI_API_KEY / ANTHROPIC_API_KEY / OPENROUTER_API_KEY env vars",
     )
     parser.add_argument(
-        "--model", default="gpt-4o-mini", help="Model name (default: gpt-4o-mini)"
+        "--model",
+        default=env_model,
+        help=(
+            f"LiteLLM model string (env: LLM_MODEL, default: {env_model}). "
+            "Format: provider/model-name — e.g. openai/gpt-5-mini, "
+            "anthropic/claude-3-5-sonnet-20241022, openrouter/anthropic/claude-3.5-sonnet"
+        ),
     )
     parser.add_argument(
-        "--max-steps",
-        type=int,
-        default=100,
-        help="Max exploration steps (default: 100)",
-    )
-    parser.add_argument(
-        "--max-pages",
-        type=int,
-        default=50,
-        help="Max pages to visit (default: 50)",
-    )
-    parser.add_argument(
-        "--max-llm-calls",
-        type=int,
-        default=300,
-        help="Max LLM calls total across all agents (default: 300)",
-    )
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug logging"
+        "--debug",
+        action="store_true",
+        default=env_debug,
+        help="Enable debug logging to file (env: DEBUG=true)",
     )
 
     args = parser.parse_args()
 
-    # Resolve API key
-    api_key = args.api_key or os.getenv("OPENAI_API_KEY")
+    # ---- Resolve API key (CLI flag beats .env) ----
+    api_key = args.api_key or env_api_key
     if not api_key:
-        print("Error: No API key provided. Set --api-key or OPENAI_API_KEY env var.")
+        print(
+            "Error: No API key found.\n"
+            "Set OPENAI_API_KEY (or ANTHROPIC_API_KEY / OPENROUTER_API_KEY) in .env, "
+            "or pass --api-key."
+        )
         sys.exit(1)
 
-    # Read functional description (optional)
-    functional_desc = ""
-    if args.functional_desc:
-        try:
-            with open(args.functional_desc, "r", encoding="utf-8") as f:
-                functional_desc = f.read()
-        except FileNotFoundError:
-            print(f"Warning: Functional description file not found: {args.functional_desc}")
+    # ---- Validate inputs ----
+    if not os.path.isfile(args.functional_desc):
+        print(f"Error: Functional description file not found: {args.functional_desc}")
+        sys.exit(1)
+
+    # ---- Run ----
+    from intelligent_navigator.spec_verifier import SpecVerifier
 
     config = {
         "base_url": args.url,
+        "functional_desc_file": args.functional_desc,
         "credentials_file": args.credentials,
-        "functional_desc": functional_desc,
-        "navigation_file": args.navigation,
         "output_dir": args.output,
         "api_key": api_key,
         "model_name": args.model,
-        "max_steps": args.max_steps,
-        "max_pages": args.max_pages,
-        "max_llm_calls": args.max_llm_calls,
         "debug": args.debug,
     }
 
-    orchestrator = Orchestrator(config)
+    verifier = SpecVerifier(config)
     try:
-        result = orchestrator.run()
-        print(f"\nNavigation graph written to: {os.path.join(args.output, 'navigation_graph.json')}")
-        graph_stats = result.navigation_graph.get("stats", {})
-        print(f"Nodes discovered: {graph_stats.get('total_nodes', 0)}")
-        print(f"Edges discovered: {graph_stats.get('total_edges', 0)}")
-        print(f"Roles explored: {', '.join(result.roles_explored)}")
-        print(f"LLM calls used: {result.exploration_stats.get('llm_calls_total', 0)}")
-        print(f"Steps taken: {result.exploration_stats.get('steps_taken', 0)}")
+        report = verifier.run()
+        json_path = os.path.join(args.output, "verification_report.json")
+        md_path   = os.path.join(args.output, "verification_report.md")
+        print(f"\n{'=' * 50}")
+        print(f"Spec Verification Complete")
+        print(f"{'=' * 50}")
+        print(f"Model         : {args.model}")
+        print(f"Overall score : {report.overall_score:.0f} / 100")
+        print(f"Sections      : {report.sections_checked} total")
+        print(f"  ✅ Pass    : {report.passed}")
+        print(f"  ⚠️  Partial : {report.partial}")
+        print(f"  ❌ Fail    : {report.failed}")
+        print(f"  ⏭️  Skipped : {report.skipped}")
+        print(f"LLM calls used: {report.llm_calls_total}")
+        print(f"\nOutputs:")
+        print(f"  JSON   → {json_path}")
+        print(f"  Report → {md_path}")
     except KeyboardInterrupt:
-        print("\nExploration interrupted by user.")
+        print("\nVerification interrupted by user.")
     except Exception as e:
-        print(f"\nExploration failed: {e}")
+        print(f"\nVerification failed: {e}")
         raise
     finally:
         try:
-            orchestrator.browser_controller.close()
+            verifier.browser_controller.close()
         except Exception:
             pass
 

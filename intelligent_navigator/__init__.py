@@ -1,14 +1,16 @@
 """
-Intelligent Navigator -- LLM-guided web exploration agent.
+Intelligent Navigator — Spec Compliance Verifier.
 
-Automatically explores web applications, building a complete navigation
-graph by combining three specialized agents:
-  - Orchestrator: strategic planning (which page to visit next)
-  - Navigator: tactical execution (how to reach a target page)
-  - Explorer: thorough extraction (all links and sub-states on a page)
+Reads a functional description markdown, navigates to each described page,
+and uses an LLM to verify whether the live application correctly implements
+what the spec says.
+
+Main entry points:
+  SpecVerifier      : drives the full verification run
+  VerificationReport: the final output dataclass
 """
 
-from intelligent_navigator.agents.orchestrator import Orchestrator
-from intelligent_navigator.core.models import ExplorationResult
+from intelligent_navigator.spec_verifier.orchestrator import SpecVerifier
+from intelligent_navigator.core.models import VerificationReport
 
-__all__ = ["Orchestrator", "ExplorationResult"]
+__all__ = ["SpecVerifier", "VerificationReport"]

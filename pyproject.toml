@@ -4,21 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intelligent-navigator"
-version = "0.1.0"
-description = "LLM-guided web exploration agent that builds navigation graphs"
+version = "0.2.0"
+description = "LLM-powered spec compliance verifier for web applications"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
 dependencies = [
-    "openai>=1.0",
+    "litellm>=1.40",
     "playwright>=1.40",
-]
-
-[project.optional-dependencies]
-viz = [
-    "networkx",
-    "matplotlib",
+    "python-dotenv>=1.0",
 ]
 
 [project.scripts]
