@@ -12,12 +12,30 @@ Model strings follow LiteLLM convention:
 support (e.g. temperature on reasoning models) — no manual detection needed.
 """
 
+import base64
 import litellm  # type: ignore
 from typing import Optional
 
 # Silently drop unsupported params per model/provider (e.g. temperature on
 # o-series reasoning models). This is the clean, provider-agnostic solution.
 litellm.drop_params = True
+
+# Known vision-capable model name fragments. If the configured model matches
+# any of these substrings, screenshots will be attached to checker calls.
+_VISION_MODEL_FRAGMENTS = (
+    "gpt-4o",
+    "gpt-5",
+    "gpt-4-turbo",
+    "claude-3",
+    "gemini",
+    "vision",
+)
+
+
+def _is_vision_model(model_name: str) -> bool:
+    """Return True if the model is known to support image inputs."""
+    lower = model_name.lower()
+    return any(fragment in lower for fragment in _VISION_MODEL_FRAGMENTS)
 
 
 class LLMClient:
@@ -34,9 +52,10 @@ class LLMClient:
         self.debug_file = debug_file
         self._call_count = 0
         self._system_prompt_logged = False
+        self.supports_vision: bool = _is_vision_model(model_name)
 
     def ask(self, user_prompt: str) -> str:
-        """Send a prompt to the model via LiteLLM and return the response."""
+        """Send a text-only prompt to the model via LiteLLM."""
         self._call_count += 1
         call_num = self._call_count
 
@@ -57,6 +76,77 @@ class LLMClient:
             self._log_llm_call(call_num, user_prompt, result)
 
         return result
+
+    def ask_with_screenshot(
+        self,
+        user_prompt: str,
+        screenshot_b64: str,
+        mime_type: str = "image/png",
+    ) -> str:
+        """Send a prompt with an attached screenshot (vision call).
+
+        If the model doesn't support vision or the call fails for any image-
+        related reason, falls back to plain text ask() automatically.
+
+        Parameters
+        ----------
+        user_prompt   : text portion of the prompt
+        screenshot_b64: base64-encoded screenshot bytes
+        mime_type     : MIME type of the image (default: image/png)
+        """
+        if not self.supports_vision or not screenshot_b64:
+            return self.ask(user_prompt)
+
+        self._call_count += 1
+        call_num = self._call_count
+
+        user_content = [
+            {"type": "text", "text": user_prompt},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{mime_type};base64,{screenshot_b64}",
+                    "detail": "high",
+                },
+            },
+        ]
+
+        try:
+            response = litellm.completion(
+                model=self.model_name,
+                api_key=self.api_key,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.2,
+                num_retries=2,
+                timeout=180,   # vision calls can be slower
+            )
+            result = response.choices[0].message.content
+
+            if self.debug_file:
+                self._log_llm_call(
+                    call_num,
+                    f"[VISION] {user_prompt[:200]}... + screenshot ({len(screenshot_b64)} b64 chars)",
+                    result,
+                )
+            return result
+
+        except Exception as e:
+            # If vision fails (unsupported, rate limit, etc.) fall back to text
+            if self.debug_file:
+                self._log_llm_call(
+                    call_num,
+                    f"[VISION→TEXT fallback, reason: {e}] {user_prompt[:200]}...",
+                    "(falling back to text-only)",
+                )
+            return self.ask(user_prompt)
+
+    @property
+    def is_vision(self) -> bool:
+        """True if this client's model supports image inputs."""
+        return self.supports_vision
 
     def set_debug_file(self, debug_file: str) -> None:
         """Set or update the debug file path."""

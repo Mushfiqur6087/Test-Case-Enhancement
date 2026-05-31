@@ -272,6 +272,12 @@ class SpecVerifier:
         selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
         page_body_text = self._get_page_body_text()
 
+        # Capture screenshot for vision-capable models
+        screenshot_b64 = None
+        if self._base_llm.is_vision:
+            from intelligent_navigator.browser.screenshot import capture_screenshot_b64
+            screenshot_b64 = capture_screenshot_b64(self.browser_session)
+
         # ---- 404 / error-page detection ----
         # If the page body is short and contains error keywords, the URL hint
         # was wrong and we landed on an error page — skip this section.
@@ -329,6 +335,7 @@ class SpecVerifier:
             selector_map_string=dom_context,
             actual_url=current_url,
             actual_title=current_title,
+            screenshot_b64=screenshot_b64,
         )
         result.navigation_success = True
         return result

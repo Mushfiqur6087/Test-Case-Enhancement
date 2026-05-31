@@ -60,6 +60,7 @@ class SpecCheckerAgent:
         selector_map_string: str,
         actual_url: str = "",
         actual_title: str = "",
+        screenshot_b64: str = None,
     ) -> SectionVerificationResult:
         """
         Run the spec check for one section against the current page DOM.
@@ -72,13 +73,15 @@ class SpecCheckerAgent:
         selector_map_string: DOM selector map in human-readable form
         actual_url         : same as page_url (kept for result hydration)
         actual_title       : same as page_title (kept for result hydration)
+        screenshot_b64     : optional base64 PNG screenshot for vision models
 
         Returns
         -------
         SectionVerificationResult
         """
         log(
-            f"  [Checker] Checking section '{section.name}' against {page_url}",
+            f"  [Checker] Checking section '{section.name}' against {page_url}"
+            + (" [+screenshot]" if screenshot_b64 and self.checker_llm.is_vision else ""),
             self.debug, self.debug_file,
         )
 
@@ -96,7 +99,10 @@ class SpecCheckerAgent:
         )
 
         try:
-            response = self.checker_llm.ask(prompt)
+            if screenshot_b64 and self.checker_llm.is_vision:
+                response = self.checker_llm.ask_with_screenshot(prompt, screenshot_b64)
+            else:
+                response = self.checker_llm.ask(prompt)
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
