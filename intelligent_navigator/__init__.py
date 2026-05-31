@@ -1,16 +1,15 @@
 """
-Intelligent Navigator — Spec Compliance Verifier.
-
-Reads a functional description markdown, navigates to each described page,
-and uses an LLM to verify whether the live application correctly implements
-what the spec says.
+Intelligent Navigator — Spec Compliance Verifier & Test Case Verifier.
 
 Main entry points:
-  SpecVerifier      : drives the full verification run
-  VerificationReport: the final output dataclass
+  SpecVerifier        : drives spec compliance verification
+  VerificationReport  : spec verification output
+  TestCaseVerifier    : drives test case step verification
+  TestCaseReport      : test case verification output
 """
 
 from intelligent_navigator.spec_verifier.orchestrator import SpecVerifier
-from intelligent_navigator.core.models import VerificationReport
+from intelligent_navigator.test_case_verifier.orchestrator import TestCaseVerifier
+from intelligent_navigator.core.models import VerificationReport, TestCaseReport
 
-__all__ = ["SpecVerifier", "VerificationReport"]
+__all__ = ["SpecVerifier", "VerificationReport", "TestCaseVerifier", "TestCaseReport"]
