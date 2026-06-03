@@ -8,27 +8,8 @@ Configuration priority (highest to lowest):
 
 Usage examples:
     # Spec verification
-    python -m intelligent_navigator \\
-        --functional-desc input/parabank/Parabank.md \\
-        --credentials input/parabank/Mock_Data.md
-
-    # Test case verification
-    python -m intelligent_navigator \\
-        --test-cases input/parabank/Test_Cases.md \\
-        --credentials input/parabank/Mock_Data.md
-
-    # Enrich test cases (no browser needed)
-    python -m intelligent_navigator \\
-        --enrich-test-cases input/parabank/Test_Cases.md \\
-        --mock-data input/parabank/Mock_Data.md \\
-        --verification-report output/test_case_report.json
-
-    # All three modes in one run
-    python -m intelligent_navigator \\
-        --functional-desc input/parabank/Parabank.md \\
-        --test-cases input/parabank/Test_Cases.md \\
-        --enrich-test-cases input/parabank/Test_Cases.md \\
-        --mock-data input/parabank/Mock_Data.md \\
+    python -m intelligent_navigator \
+        --functional-desc input/parabank/Parabank.md \
         --credentials input/parabank/Mock_Data.md
 """
 
@@ -58,7 +39,7 @@ def main():
     env_debug   = os.getenv("DEBUG", "false").lower() == "true"
 
     parser = argparse.ArgumentParser(
-        description="Intelligent Navigator — Spec Compliance Verifier & Test Case Toolkit",
+        description="Intelligent Navigator — Spec Compliance Verifier",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -71,28 +52,8 @@ def main():
     parser.add_argument(
         "--functional-desc",
         default=None,
+        required=True,
         help="Path to the functional description markdown (Spec Verifier mode)",
-    )
-    parser.add_argument(
-        "--test-cases",
-        default=None,
-        help="Path to the test cases markdown (Test Case Verifier mode)",
-    )
-    parser.add_argument(
-        "--enrich-test-cases",
-        default=None,
-        metavar="TC_FILE",
-        help="Path to the test cases markdown to enrich (no browser needed)",
-    )
-    parser.add_argument(
-        "--mock-data",
-        default=None,
-        help="Path to mock data markdown used to fill placeholders (for --enrich-test-cases)",
-    )
-    parser.add_argument(
-        "--verification-report",
-        default=None,
-        help="Path to a previous test_case_report.json (used by --enrich-test-cases to repair invalid TCs)",
     )
     parser.add_argument(
         "--credentials",
@@ -137,31 +98,8 @@ def main():
         )
         sys.exit(1)
 
-    # ---- Validate at least one mode is specified ----
-    if not args.functional_desc and not args.test_cases and not args.enrich_test_cases:
-        print(
-            "Error: At least one mode is required:\n"
-            "  --functional-desc    Spec verification\n"
-            "  --test-cases         Test case verification\n"
-            "  --enrich-test-cases  Test case enrichment (no browser needed)"
-        )
-        sys.exit(1)
-
-    for flag, path in [
-        ("--functional-desc", args.functional_desc),
-        ("--test-cases", args.test_cases),
-        ("--enrich-test-cases", args.enrich_test_cases),
-    ]:
-        if path and not os.path.isfile(path):
-            print(f"Error: File not found for {flag}: {path}")
-            sys.exit(1)
-
-    if args.enrich_test_cases and not args.mock_data:
-        print("Error: --enrich-test-cases requires --mock-data <path>")
-        sys.exit(1)
-
-    if args.mock_data and not os.path.isfile(args.mock_data):
-        print(f"Error: Mock data file not found: {args.mock_data}")
+    if not os.path.isfile(args.functional_desc):
+        print(f"Error: File not found for --functional-desc: {args.functional_desc}")
         sys.exit(1)
 
     base_config = {
@@ -174,64 +112,20 @@ def main():
     }
 
     # ---- Spec Verifier ----
-    if args.functional_desc:
-        from intelligent_navigator.spec_verifier import SpecVerifier
-        verifier = SpecVerifier({**base_config, "functional_desc_file": args.functional_desc})
+    from intelligent_navigator.spec_verifier import SpecVerifier
+    verifier = SpecVerifier({**base_config, "functional_desc_file": args.functional_desc})
+    try:
+        verifier.run()
+    except KeyboardInterrupt:
+        print("\nSpec verification interrupted.")
+    except Exception as e:
+        print(f"\nSpec verification failed: {e}")
+        raise
+    finally:
         try:
-            verifier.run()
-        except KeyboardInterrupt:
-            print("\nSpec verification interrupted.")
-        except Exception as e:
-            print(f"\nSpec verification failed: {e}")
-            raise
-        finally:
-            try:
-                verifier.browser_controller.close()
-            except Exception:
-                pass
-
-    # ---- Test Case Verifier ----
-    if args.test_cases:
-        from intelligent_navigator.test_case_verifier import TestCaseVerifier
-        tc_verifier = TestCaseVerifier({**base_config, "test_case_file": args.test_cases})
-        try:
-            tc_verifier.run()
-        except KeyboardInterrupt:
-            print("\nTest case verification interrupted.")
-        except Exception as e:
-            print(f"\nTest case verification failed: {e}")
-            raise
-        finally:
-            try:
-                tc_verifier.browser_controller.close()
-            except Exception:
-                pass
-
-    # ---- Test Case Enricher (no browser) ----
-    if args.enrich_test_cases:
-        # If a verification report wasn't provided but we just ran the TC verifier,
-        # auto-detect the default output location.
-        verification_report = args.verification_report
-        if not verification_report:
-            default_report = os.path.join(args.output, "test_case_report.json")
-            if os.path.isfile(default_report):
-                verification_report = default_report
-                print(f"\n[Enricher] Auto-detected verification report: {default_report}")
-
-        from intelligent_navigator.test_case_enricher.enricher import TestCaseEnricher
-        enricher = TestCaseEnricher({
-            **base_config,
-            "test_case_file": args.enrich_test_cases,
-            "mock_data_file": args.mock_data,
-            "verification_report": verification_report or "",
-        })
-        try:
-            enricher.run()
-        except KeyboardInterrupt:
-            print("\nTest case enrichment interrupted.")
-        except Exception as e:
-            print(f"\nTest case enrichment failed: {e}")
-            raise
+            verifier.browser_controller.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
