@@ -1,0 +1,5 @@
+## Standard User
+
+Username: standard_user
+Password: secret_sauce
+
