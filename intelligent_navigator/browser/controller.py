@@ -25,11 +25,7 @@ class BrowserController:
             "press_key":        self.press_key,
             "clear_input":      self.clear_input,
             "wait_for_element": self.wait_for_element,
-            "switch_tab":       self.switch_tab,
-            "open_tab":         self.open_tab,
-            "close_tab":        self.close_tab,
             "navigate_to":      self.navigate_to,
-            "end":              self.end,
         }
 
         if command not in command_map:
@@ -157,24 +153,6 @@ class BrowserController:
 
         except Exception as e:
             print(f"  [Controller] input_text({element_index}) error: {e}")
-            return False
-
-    def switch_tab(self, tab_index: int) -> bool:
-        try:
-            return self.browser_context.switch_to_tab(tab_index)
-        except Exception:
-            return False
-
-    def open_tab(self, url: Optional[str] = None) -> Dict[str, Any]:
-        try:
-            return self.browser_context.create_new_tab(url)
-        except Exception:
-            return {}
-
-    def close_tab(self, tab_index: int) -> bool:
-        try:
-            return self.browser_context.close_tab(tab_index)
-        except Exception:
             return False
 
     def scroll_down(self, amount: int = 500) -> bool:
@@ -363,13 +341,6 @@ class BrowserController:
     def navigate_to(self, url: str) -> bool:
         try:
             self.browser_context.navigate_to(url)
-            return True
-        except Exception:
-            return False
-
-    def end(self, reason: Optional[str] = None) -> bool:
-        try:
-            self.browser_context.close()
             return True
         except Exception:
             return False

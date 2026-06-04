@@ -36,7 +36,8 @@ class FullPageDOMTreeParser(DOMTreeParser):
 
 
 class DOMHelper:
-    """Temporary DOM access for link extraction. Nothing is stored."""
+    """DOM capture helper. Scrolls the full page to trigger lazy-loaded content,
+    then captures the complete interactive element map."""
 
     SCROLL_STEP_PX = 800
     MAX_SCROLLS = 15
@@ -73,13 +74,10 @@ class DOMHelper:
         except Exception:
             pass
 
-        return self.get_dom_for_link_extraction()
+        return self._capture_dom()
 
-    def get_dom_for_link_extraction(self) -> Tuple[str, str]:
-        """
-        Get both selector_map_json and selector_map_string in one parse.
-        Returns (selector_map_json, selector_map_string).
-        """
+    def _capture_dom(self) -> Tuple[str, str]:
+        """Capture the current DOM as (selector_map_json, selector_map_string)."""
         page = self.browser_session.get_current_page()
         if page is None:
             return ("{}", "")

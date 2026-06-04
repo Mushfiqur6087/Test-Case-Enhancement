@@ -6,61 +6,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
-# ---- Navigator Models ----
-
 @dataclass
 class RoleCredentials:
     """Credentials for a single role."""
     username: str
     password: str
     role: str
-    privilege_level: int = 0
-
-
-@dataclass
-class NavigatorCommand:
-    """Command sent from SpecVerifier → Navigator.
-
-    command_type:
-        - explore_page : navigate to target_url so we can capture its DOM
-        - click_element: click a specific element identified by link_text on the
-                         current page (used for SPA navigation where href="#")
-        - login        : navigate to the login page and fill credentials
-        - logout       : click the logout link on the current page
-    """
-    command_type: str   # "explore_page" | "click_element" | "login" | "logout"
-    target_url: str = ""
-    target_label: str = ""
-    credentials: Optional[RoleCredentials] = None
-    reasoning: str = ""
-    click_target_text: str = ""   # visible text of the element to click (for click_element)
-
-
-@dataclass
-class PageNavigatorResult:
-    """Result returned from Navigator → SpecVerifier."""
-    success: bool
-    current_url: str = ""
-    current_title: str = ""
-    failure_reason: str = ""
-    actions_taken: List[Dict[str, Any]] = field(default_factory=list)
-    retry_attempted: bool = False
-    navigation_steps: int = 0
-    was_redirected: bool = False
-    redirected_to: str = ""
-
-
-@dataclass
-class NavigationStepRecord:
-    """Record of a single step in the Navigator's multi-step loop."""
-    step_number: int
-    url_before: str
-    title_before: str
-    actions_requested: List[Dict[str, Any]] = field(default_factory=list)
-    actions_executed: List[Dict[str, Any]] = field(default_factory=list)
-    url_after: str = ""
-    title_after: str = ""
-    reasoning: str = ""
 
 
 # ---- Spec Verifier Models ----
@@ -138,6 +89,3 @@ class VerificationReport:
                 "llm_calls_total": self.llm_calls_total,
             },
         }
-
-
-

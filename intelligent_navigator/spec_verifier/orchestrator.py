@@ -875,7 +875,6 @@ class TraversalOrchestrator:
             )
             self.llm_call_count += 1
             self.credentials = self.credential_parser.deduplicate_roles(self.credentials)
-            self.credentials = self.credential_parser.sort_by_privilege(self.credentials)
             self._log(
                 f"  Found {len(self.credentials)} role(s): "
                 + ", ".join(c.role for c in self.credentials)
