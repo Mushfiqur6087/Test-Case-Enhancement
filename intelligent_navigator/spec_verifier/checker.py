@@ -113,7 +113,6 @@ class SpecCheckerAgent:
             self.llm_call_count += 1
             return SectionVerificationResult(
                 section_name=section.name,
-                url_hint=section.url_hint,
                 actual_url=actual_url or page_url,
                 actual_title=actual_title or page_title,
                 verdict="fail",
@@ -146,7 +145,6 @@ class SpecCheckerAgent:
 
         return SectionVerificationResult(
             section_name=section.name,
-            url_hint=section.url_hint,
             actual_url=actual_url or page_url,
             actual_title=actual_title or page_title,
             verdict=verdict,

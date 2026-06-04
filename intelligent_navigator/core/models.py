@@ -65,17 +65,14 @@ class NavigationStepRecord:
 @dataclass
 class SpecSection:
     """One section of a functional description document."""
-    name: str                    # e.g. "Login", "Register"
-    raw_text: str                # Full markdown text of this section
-    url_hint: str = ""           # Best-guess URL path, e.g. "/login"
-    requires_auth: bool = False  # True if this section implies a logged-in state
+    name: str       # e.g. "Login", "Register"
+    raw_text: str   # Full markdown text of this section
 
 
 @dataclass
 class SectionVerificationResult:
     """The spec checker's verdict for one SpecSection."""
     section_name: str
-    url_hint: str
     actual_url: str              # URL the browser landed on
     actual_title: str            # Page title the browser saw
     verdict: str                 # "pass" | "partial" | "fail" | "skipped"
@@ -90,7 +87,6 @@ class SectionVerificationResult:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "section_name": self.section_name,
-            "url_hint": self.url_hint,
             "actual_url": self.actual_url,
             "actual_title": self.actual_title,
             "verdict": self.verdict,

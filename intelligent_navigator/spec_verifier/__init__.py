@@ -1,17 +1,22 @@
 """
-Spec Verifier -- Description-driven compliance checker.
+Spec Verifier — Agentic traversal-based compliance checker.
 
-Instead of exploring a web app by following links, this module reads a
-functional description (markdown), navigates to each described page, and
-uses an LLM to verify that the live HTML actually implements what the
-spec says.
+Navigates the live web application by following real links (discovered by
+LinkDiscoveryAgent), identifies each page using PageIdentifierAgent, and
+verifies it against the functional specification using SpecCheckerAgent.
+
+No hardcoded URL mappings. No keyword guessing.
 
 Main entry points:
-  - SpecVerifier      : drives the full verification run
-  - VerificationReport: the final output dataclass (also in core.models)
+  - TraversalOrchestrator : drives the full zero-hardcoding verification run
+  - SpecVerifier          : alias for backward compatibility with __main__.py
+  - VerificationReport    : the final output dataclass (also in core.models)
 """
 
-from intelligent_navigator.spec_verifier.orchestrator import SpecVerifier
+from intelligent_navigator.spec_verifier.orchestrator import (
+    TraversalOrchestrator,
+    SpecVerifier,  # backward-compatible alias
+)
 from intelligent_navigator.core.models import VerificationReport
 
-__all__ = ["SpecVerifier", "VerificationReport"]
+__all__ = ["TraversalOrchestrator", "SpecVerifier", "VerificationReport"]
