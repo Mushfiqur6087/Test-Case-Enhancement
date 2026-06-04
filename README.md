@@ -14,9 +14,9 @@ An LLM-powered **spec verifier** that reads a **functional description**, autono
 └────────────┬────────────────────┘
              │
              ▼
-    ┌─────────────── ───────┐
+    ┌───────────────────────┐
     │  TraversalOrchestrator│  Drives agentic BFS traversal
-    └────────┬───────── ────┘
+    └────────┬──────────────┘
              │
     ┌────────▼─────────────────────────────────────────┐
     │  Phase 1 — Public Traversal                      │
