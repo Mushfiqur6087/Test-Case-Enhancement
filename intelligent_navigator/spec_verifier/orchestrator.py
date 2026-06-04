@@ -1,34 +1,28 @@
 """
-Traversal Orchestrator (replaces the old SpecVerifier).
+Traversal Orchestrator — Plan-based spec verification.
 
-Drives a two-phase agentic traversal to verify all sections of a functional
-description against a live web application — with zero hardcoded URLs.
+Drives a two-phase, spec-aware traversal to verify all sections of a functional
+description against a live web application.
 
-Phase 1 — Public traversal
-  Starting from base_url, the orchestrator uses:
-    - LinkDiscoveryAgent  → find which page links match unvisited spec sections
-    - Navigator           → navigate to those pages
-    - PageIdentifierAgent → confirm which spec section the landed page is
-    - SpecCheckerAgent    → verify the page against its spec section
-  It repeats until no more public-accessible spec sections are reachable.
+Architecture:
+  1. TraversalPlannerAgent reads the full spec → generates ordered traversal plan
+  2. For each step in the plan:
+     a. ActionEngine navigates to the target page (goal-oriented actions)
+     b. PageIdentifierAgent confirms which spec section the page matches
+     c. SpecCheckerAgent verifies the page against its spec section
+  3. Failed steps trigger replanning via the TraversalPlannerAgent
 
-Phase 2 — Per-role authenticated traversal
-  For each set of credentials, the orchestrator logs in and repeats the
-  same BFS loop for sections that were not reachable as a public user.
-  Each role gets a completely fresh traversal from base_url.
-
-No URL hints, no keyword tables, no guessing.
+No URL hints, no keyword tables, no guessing. The plan is derived entirely
+from the functional specification.
 """
 
 import os
-from collections import deque
 from datetime import datetime
-from typing import Any, Deque, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from intelligent_navigator.core.llm import LLMClient
 from intelligent_navigator.core.logging import DebugLogger
 from intelligent_navigator.core.models import (
-    NavigatorCommand,
     RoleCredentials,
     SectionVerificationResult,
     SpecSection,
@@ -44,21 +38,25 @@ from intelligent_navigator.browser.controller import BrowserController
 from intelligent_navigator.browser.dom_helper import DOMHelper
 from intelligent_navigator.browser.selector_filter import SelectorMapFilter
 from intelligent_navigator.exploration.credentials import CredentialParser
-from intelligent_navigator.agents.navigator import Navigator
 from intelligent_navigator.agents.page_identifier import PageIdentifierAgent
-from intelligent_navigator.agents.link_discovery import LinkDiscoveryAgent, CandidateLink
+from intelligent_navigator.agents.traversal_planner import (
+    TraversalPlannerAgent,
+    TraversalStep,
+)
+from intelligent_navigator.agents.action_engine import ActionEngine
 from intelligent_navigator.spec_verifier.description_parser import DescriptionParser
 from intelligent_navigator.spec_verifier.checker import SpecCheckerAgent
 from intelligent_navigator.spec_verifier import report as report_module
 
-# ---- Traversal constants ----
-_MAX_FRONTIER_RETRIES = 2    # times to go back to base_url when frontier is empty
-_MAX_VISITED_URLS = 200      # circuit-breaker to prevent infinite loops
+
+# ---- Constants ----
+_MAX_REPLAN_ATTEMPTS = 2   # max times to replan a single failed step
+_ACTION_SECTION_KEYWORDS = ["logout", "reset", "sign out", "log out"]
 
 
 class TraversalOrchestrator:
     """
-    Orchestrates a zero-hardcoding, agentic traversal-based spec verification.
+    Orchestrates a plan-based, agentic traversal for spec verification.
 
     Parameters
     ----------
@@ -105,7 +103,12 @@ class TraversalOrchestrator:
         self.selector_filter = SelectorMapFilter()
 
         # ---- Agents ----
-        self.navigator = Navigator(
+        self.planner = TraversalPlannerAgent(
+            llm_client=self._base_llm,
+            debug=self.debug,
+            debug_file=self.debug_file,
+        )
+        self.action_engine = ActionEngine(
             llm_client=self._base_llm,
             browser_controller=self.browser_controller,
             browser_session=self.browser_session,
@@ -115,14 +118,6 @@ class TraversalOrchestrator:
         )
         self.page_identifier = PageIdentifierAgent(
             llm_client=self._base_llm,
-            debug=self.debug,
-            debug_file=self.debug_file,
-        )
-        self.link_discovery = LinkDiscoveryAgent(
-            llm_client=self._base_llm,
-            browser_controller=self.browser_controller,
-            browser_session=self.browser_session,
-            dom_helper=self.dom_helper,
             debug=self.debug,
             debug_file=self.debug_file,
         )
@@ -170,57 +165,115 @@ class TraversalOrchestrator:
         self.browser_controller.execute_command("navigate_to", self.base_url)
         wait_for_page(self.browser_session)
 
-        # 4. Phase 1 — Public traversal
+        # 4. Generate traversal plan
         self._log("\n" + "=" * 40)
-        self._log("PHASE 1 — PUBLIC TRAVERSAL")
+        self._log("GENERATING TRAVERSAL PLAN")
         self._log("=" * 40)
 
-        public_results: Dict[str, SectionVerificationResult] = {}
-        self._run_traversal_loop(
-            pending=list(all_sections),
+        credentials_info = self._format_credentials_for_planner()
+        plan = self.planner.generate_plan(
             all_sections=all_sections,
-            results=public_results,
-            auth_state="public",
-            role_label="public",
+            base_url=self.base_url,
+            credentials_info=credentials_info,
         )
-
-        # 5. Phase 2 — Per-role authenticated traversal
-        role_results: Dict[str, Dict[str, SectionVerificationResult]] = {
-            "public": public_results
-        }
-
-        for creds in self.credentials:
-            self._log("\n" + "=" * 40)
-            self._log(f"PHASE 2 — AUTHENTICATED TRAVERSAL (role: {creds.role})")
-            self._log("=" * 40)
-
-            # Navigate back to base, log in fresh for this role
-            self.browser_controller.execute_command("navigate_to", self.base_url)
-            wait_for_page(self.browser_session)
-            self._do_login(creds)
-
-            auth_results: Dict[str, SectionVerificationResult] = {}
-            self._run_traversal_loop(
-                pending=list(all_sections),
-                all_sections=all_sections,
-                results=auth_results,
-                auth_state="logged_in",
-                role_label=creds.role,
+        self._log(f"\nPlan reasoning: {plan.reasoning}")
+        self._log(f"Total steps: {len(plan.steps)}")
+        for i, step in enumerate(plan.steps, 1):
+            self._log(
+                f"  {i}. [{step.phase}] {step.target_section} "
+                f"({step.page_type}) — {step.how_to_reach[:80]}"
             )
-            role_results[creds.role] = auth_results
 
-            self._do_logout()
+        # 5. Execute the plan
+        results: Dict[str, SectionVerificationResult] = {}
+        section_map = {s.name: s for s in all_sections}
+        current_phase = None
+        logged_in = False
 
-        # 6. Merge results: prefer authenticated results over public for sections
-        #    that were skipped or failed as public
-        merged = self._merge_results(all_sections, role_results)
+        for step_idx, step in enumerate(plan.steps):
+            section_name = step.target_section
+
+            # Skip if already verified
+            if section_name in results:
+                self._log(f"\n  [Step {step_idx+1}] '{section_name}' already verified — skipping.")
+                continue
+
+            # Handle phase transitions
+            if step.phase != current_phase:
+                current_phase = step.phase
+                self._log(f"\n{'=' * 40}")
+                self._log(f"PHASE: {current_phase.upper()}")
+                self._log("=" * 40)
+
+                if step.phase == "authenticated" and not logged_in:
+                    self._do_login()
+                    logged_in = True
+
+            self._log(
+                f"\n  [Step {step_idx+1}/{len(plan.steps)}] "
+                f"Target: '{section_name}' ({step.page_type})"
+            )
+            self._log(f"    How: {step.how_to_reach}")
+            if step.prerequisites:
+                self._log(f"    Prerequisites: {', '.join(step.prerequisites)}")
+
+            # Execute the step
+            result = self._execute_step(
+                step=step,
+                section_map=section_map,
+                results=results,
+                all_sections=all_sections,
+            )
+
+            if result:
+                results[section_name] = result
+                self._log(
+                    f"    Result: {result.verdict.upper()} "
+                    f"({result.compliance_score}/100)"
+                )
+            else:
+                self._log(f"    Result: Navigation failed — will try replanning.")
+
+                # Replan the failed step
+                replan_result = self._replan_and_retry(
+                    step=step,
+                    section_map=section_map,
+                    results=results,
+                    all_sections=all_sections,
+                )
+                if replan_result:
+                    results[section_name] = replan_result
+                    self._log(
+                        f"    Replan result: {replan_result.verdict.upper()} "
+                        f"({replan_result.compliance_score}/100)"
+                    )
+                else:
+                    results[section_name] = self._skipped_result(
+                        section_name,
+                        get_current_url(self.browser_session),
+                        get_current_title(self.browser_session),
+                        reason="Could not navigate to this section after replanning.",
+                    )
+
+            # Progress summary
+            self._log_progress(results, all_sections)
+
+        # 6. Handle any sections not in the plan
+        for section in all_sections:
+            if section.name not in results:
+                self._log(f"  Section '{section.name}' not reached — skipped.")
+                results[section.name] = self._skipped_result(
+                    section.name, self.base_url, "",
+                    reason="Section was not reached during traversal.",
+                )
 
         # 7. Build and write report
+        merged = [results[s.name] for s in all_sections]
         total_llm = (
             self.llm_call_count
-            + self.navigator.llm_call_count
+            + self.planner.llm_call_count
+            + self.action_engine.llm_call_count
             + self.page_identifier.llm_call_count
-            + self.link_discovery.llm_call_count
             + self.checker.llm_call_count
         )
         report = report_module.build_report(
@@ -230,11 +283,10 @@ class TraversalOrchestrator:
             llm_calls_total=total_llm,
             extra_stats={
                 "llm_calls_orchestrator": self.llm_call_count,
-                "llm_calls_navigator": self.navigator.llm_call_count,
+                "llm_calls_planner": self.planner.llm_call_count,
+                "llm_calls_action_engine": self.action_engine.llm_call_count,
                 "llm_calls_page_identifier": self.page_identifier.llm_call_count,
-                "llm_calls_link_discovery": self.link_discovery.llm_call_count,
                 "llm_calls_checker": self.checker.llm_call_count,
-                "roles_verified": list(role_results.keys()),
             },
         )
         paths = report_module.write_report(report, self.output_dir)
@@ -255,175 +307,428 @@ class TraversalOrchestrator:
         return report
 
     # ================================================================
-    # Core BFS Traversal Loop
+    # Step Execution
     # ================================================================
 
-    def _run_traversal_loop(
+    def _execute_step(
         self,
-        pending: List[SpecSection],
-        all_sections: List[SpecSection],
+        step: TraversalStep,
+        section_map: Dict[str, SpecSection],
         results: Dict[str, SectionVerificationResult],
-        auth_state: str,
-        role_label: str,
-    ) -> None:
+        all_sections: List[SpecSection],
+    ) -> Optional[SectionVerificationResult]:
         """
-        BFS-based traversal loop.
-
-        Maintains a frontier (queue of CandidateLink) populated by
-        LinkDiscoveryAgent. Pops candidates by confidence, navigates,
-        identifies, verifies, then re-runs discovery on the new page.
-        Falls back to base_url when frontier is empty.
+        Execute a single traversal step:
+          1. Check if we're already on the target page (skip nav if so)
+          2. For form_gateway: use two-phase approach (verify form, then submit)
+          3. For normal pages: navigate → identify → verify → run interactions
         """
-        pending_names: Set[str] = {s.name for s in pending}
-        pending_map: Dict[str, SpecSection] = {s.name: s for s in pending}
-        frontier: Deque[CandidateLink] = deque()
-        visited_urls: Set[str] = set()
-        empty_retries = 0
+        section = section_map.get(step.target_section)
+        if not section:
+            return None
 
-        # Seed: run discovery from the current page (base_url landing)
+        # ---- CHECK: Are we already on the target page? ----
         current_url = get_current_url(self.browser_session)
         current_title = get_current_title(self.browser_session)
-
-        # First check if the landing page itself matches a section
-        self._identify_and_verify_current_page(
-            current_url, current_title, pending_names, pending_map,
-            results, all_sections,
-        )
-
-        # Discover links from landing page
-        unvisited = [pending_map[n] for n in pending_names if n not in results]
-        self._extend_frontier(frontier, current_url, current_title, unvisited)
-        visited_urls.add(current_url)
-
-        while pending_names - set(results.keys()):
-            # Sort frontier by confidence (highest first)
-            sorted_frontier = sorted(frontier, key=lambda c: c.confidence, reverse=True)
-            frontier = deque(sorted_frontier)
-
-            if not frontier:
-                empty_retries += 1
-                if empty_retries > _MAX_FRONTIER_RETRIES:
-                    self._log(
-                        f"  [Traversal] Frontier empty after {_MAX_FRONTIER_RETRIES} "
-                        f"retries. Marking remaining sections as skipped."
-                    )
-                    break
-
-                self._log(
-                    f"  [Traversal] Frontier empty (retry {empty_retries}/"
-                    f"{_MAX_FRONTIER_RETRIES}). Returning to base URL..."
-                )
-                self.browser_controller.execute_command("navigate_to", self.base_url)
-                wait_for_page(self.browser_session)
-                current_url = get_current_url(self.browser_session)
-                current_title = get_current_title(self.browser_session)
-
-                unvisited = [pending_map[n] for n in pending_names if n not in results]
-                self._extend_frontier(frontier, current_url, current_title, unvisited)
-                continue
-
-            # Pop next candidate
-            candidate = frontier.popleft()
-
-            # Skip if section already verified
-            if candidate.section in results:
-                continue
-
-            # Skip if URL already visited
-            candidate_url = candidate.href
-            if candidate_url in visited_urls:
-                continue
-
-            if len(visited_urls) >= _MAX_VISITED_URLS:
-                self._log("  [Traversal] Visited URL limit reached — stopping.")
-                break
-
-            self._log(
-                f"\n  [Traversal] → '{candidate.section}' via "
-                f"[{candidate.link_text}]({candidate.href}) [{candidate.confidence}%]"
-            )
-
-            # Navigate using the Navigator agent (click-based if needed)
-            nav_success = self._navigate_to(candidate.href, candidate.section)
-            current_url = get_current_url(self.browser_session)
-            current_title = get_current_title(self.browser_session)
-            visited_urls.add(current_url)
-
-            if not nav_success:
-                self._log(f"  [Traversal] Navigation failed for '{candidate.section}'.")
-                results[candidate.section] = self._skipped_result(
-                    candidate.section, current_url, current_title,
-                    reason=f"Navigation to {candidate.href} failed.",
-                )
-                continue
-
-            # Identify the page
-            self._identify_and_verify_current_page(
-                current_url, current_title, pending_names, pending_map,
-                results, all_sections,
-            )
-
-            # Discover links from this new page
-            unvisited = [pending_map[n] for n in pending_names if n not in results]
-            if unvisited:
-                self._extend_frontier(frontier, current_url, current_title, unvisited)
-
-        # Mark any still-pending sections as skipped
-        for name in pending_names:
-            if name not in results:
-                self._log(f"  [Traversal] Section '{name}' unreachable — skipped.")
-                results[name] = self._skipped_result(
-                    name, self.base_url, "",
-                    reason="Section not reachable via traversal.",
-                )
-
-    # ================================================================
-    # Identify + Verify Current Page
-    # ================================================================
-
-    def _identify_and_verify_current_page(
-        self,
-        current_url: str,
-        current_title: str,
-        pending_names: Set[str],
-        pending_map: Dict[str, SpecSection],
-        results: Dict[str, SectionVerificationResult],
-        all_sections: List[SpecSection],
-    ) -> None:
-        """
-        Run PageIdentifierAgent on the current page.
-        If a pending section is matched, run SpecCheckerAgent and store result.
-        """
-        # Capture page content
         page_content = self._get_combined_page_content()
+
+        unvisited = [
+            section_map[n] for n in section_map
+            if n not in results
+        ]
 
         matched_section, confidence = self.page_identifier.identify(
             current_url=current_url,
             current_title=current_title,
             page_content=page_content,
-            all_sections=all_sections,
+            all_sections=unvisited,
         )
 
-        if not matched_section:
+        if matched_section == step.target_section and confidence >= 70:
             self._log(
-                f"  [Traversal] No spec match for '{current_title}' ({current_url})"
+                f"    Already on target page '{step.target_section}' "
+                f"[{confidence}%] — skipping navigation."
             )
-            return
+            result = self._verify_section(
+                section=section,
+                current_url=current_url,
+                current_title=current_title,
+                page_content=page_content,
+            )
+            # Run post-verification interactions even when we skipped nav
+            self._run_post_verify_interactions(step)
+            return result
 
-        if matched_section not in pending_names:
-            self._log(
-                f"  [Traversal] '{matched_section}' already visited — skipping verify."
+        # ---- FORM GATEWAY: Two-phase approach ----
+        if step.page_type == "form_gateway":
+            return self._execute_form_gateway_step(
+                step=step,
+                section_map=section_map,
+                results=results,
+                all_sections=all_sections,
             )
-            return
+
+        # ---- NORMAL STEP: Navigate → Identify → Verify → Interact ----
+        goal = self._build_goal(step, section_map, results)
+        extra_context = self._build_extra_context(step)
+
+        pre_nav_url = get_current_url(self.browser_session)
+        action_result = self.action_engine.execute_goal(
+            goal=goal,
+            extra_context=extra_context,
+        )
+
+        if not action_result.success:
+            self._log(
+                f"    Navigation failed: {action_result.failure_reason[:120]}"
+            )
+            return None
+
+        # Sanity check: if the URL didn't change, the LLM may have declared
+        # goal_achieved prematurely (saw filled form fields, assumed the next
+        # click would navigate, but didn't wait for the actual page transition).
+        # Retry once so the ActionEngine can observe the true page state.
+        post_nav_url = get_current_url(self.browser_session)
+        if post_nav_url == pre_nav_url:
+            self._log(
+                f"    [Nav] URL unchanged after action — retrying navigation"
+            )
+            retry_result = self.action_engine.execute_goal(
+                goal=goal,
+                extra_context=extra_context,
+            )
+            if not retry_result.success:
+                self._log(
+                    f"    Navigation retry failed: {retry_result.failure_reason[:120]}"
+                )
+                return None
+
+        # Identify the page we landed on and verify it
+        result = self._identify_and_verify(
+            step=step,
+            section_map=section_map,
+            results=results,
+        )
+
+        # ---- POST-VERIFY: Execute interactions_needed as side-effect setup ----
+        # This runs AFTER verification so we can't overshoot the target page,
+        # but BEFORE the next step so prerequisites (e.g., "items in cart")
+        # are satisfied. The planner already specified what to do on each page.
+        if result:
+            self._run_post_verify_interactions(step)
+
+        return result
+
+    def _execute_form_gateway_step(
+        self,
+        step: TraversalStep,
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+        all_sections: List[SpecSection],
+    ) -> Optional[SectionVerificationResult]:
+        """
+        Two-phase form_gateway execution:
+          Phase A: Navigate to the form page, identify + verify it (before submit)
+          Phase B: Fill and submit the form to proceed to the next step
+
+        This ensures form pages (Login, Checkout Info) get verified BEFORE
+        the form submission navigates us away.
+        """
+        section = section_map.get(step.target_section)
+        if not section:
+            return None
+
+        # --- Phase A: Navigate to the form page ---
+        nav_goal = self._build_goal(step, section_map, results)
+        extra_context = self._build_extra_context(step)
+
+        action_result = self.action_engine.execute_goal(
+            goal=nav_goal,
+            extra_context=extra_context,
+        )
+
+        if not action_result.success:
+            self._log(
+                f"    [FormGateway] Navigation failed: "
+                f"{action_result.failure_reason[:120]}"
+            )
+            return None
+
+        # --- Phase A: Verify the form page ---
+        current_url = get_current_url(self.browser_session)
+        current_title = get_current_title(self.browser_session)
+        page_content = self._get_combined_page_content()
 
         self._log(
-            f"  [Traversal] ✓ Matched '{matched_section}' [{confidence}%] "
-            f"→ running spec check..."
+            f"    [FormGateway] Arrived at form page: "
+            f"{current_title} ({current_url})"
         )
 
-        section = pending_map[matched_section]
+        result = self._verify_section(
+            section=section,
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+        )
 
-        # Optional screenshot for vision-capable models
+        # --- Phase B: Fill and submit the form to proceed ---
+        if step.interactions_needed:
+            self._log(
+                f"    [FormGateway] Submitting form: "
+                f"{step.interactions_needed[:100]}"
+            )
+            submit_goal = step.interactions_needed
+            submit_result = self.action_engine.execute_goal(
+                goal=submit_goal,
+                extra_context=extra_context,
+            )
+            if submit_result.success:
+                self._log(
+                    f"    [FormGateway] Form submitted → "
+                    f"{submit_result.current_title} ({submit_result.current_url})"
+                )
+            else:
+                self._log(
+                    f"    [FormGateway] Form submission failed: "
+                    f"{submit_result.failure_reason[:120]}"
+                )
+
+        return result
+
+    def _identify_and_verify(
+        self,
+        step: TraversalStep,
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+    ) -> Optional[SectionVerificationResult]:
+        """
+        After navigation, identify the current page and verify it.
+        If the page matches a different unvisited section, verify that instead.
+        """
+        current_url = get_current_url(self.browser_session)
+        current_title = get_current_title(self.browser_session)
+        page_content = self._get_combined_page_content()
+
+        unvisited = [
+            section_map[n] for n in section_map
+            if n not in results
+        ]
+
+        matched_section, confidence = self.page_identifier.identify(
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+            all_sections=unvisited,
+        )
+
+        # Determine which section to verify
+        target_to_verify = step.target_section
+        if matched_section and matched_section != step.target_section:
+            self._log(
+                f"    Page matched '{matched_section}' instead of "
+                f"'{step.target_section}' [{confidence}%]"
+            )
+            if matched_section not in results:
+                target_to_verify = matched_section
+
+        if not matched_section:
+            # For overlay and action types, verify in-place
+            if step.page_type in ("overlay", "action"):
+                target_to_verify = step.target_section
+                self._log(
+                    f"    No page match (expected for {step.page_type} type) — "
+                    f"verifying '{target_to_verify}' in-place."
+                )
+            else:
+                self._log(
+                    f"    No spec section matched at {current_url}"
+                )
+                return None
+
+        section_to_verify = section_map.get(target_to_verify)
+        if not section_to_verify:
+            return None
+
+        return self._verify_section(
+            section=section_to_verify,
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+        )
+
+    def _run_post_verify_interactions(self, step: TraversalStep) -> None:
+        """
+        Execute a step's interactions_needed AFTER the page has been verified.
+
+        This is the post-verification side-effect phase. It satisfies prerequisites
+        for subsequent steps without any app-specific logic:
+          - Verification already happened → no risk of overshooting the target page
+          - Interactions run now → next step's prerequisites are met
+          - The planner specified what to do on each page — we just execute it
+
+        Examples of what this executes:
+          - Product Inventory / Detail: "Click 'Add to cart' for one product"
+            → satisfies "items in cart" prerequisite for Shopping Cart step
+          - Navigation Menu (overlay): "Click 'All Items' or close the X button"
+            → cleans up overlay state before next step
+
+        Skipped for form_gateway steps — those use the Phase B submission instead.
+        """
+        if not step.interactions_needed:
+            return
+        if step.page_type == "form_gateway":
+            return  # form_gateway uses Phase B (explicit submit)
+
+        self._log(
+            f"    [PostVerify] Executing interactions: "
+            f"{step.interactions_needed[:100]}"
+        )
+        extra_context = self._build_extra_context(step)
+        interact_result = self.action_engine.execute_goal(
+            goal=step.interactions_needed,
+            extra_context=extra_context,
+        )
+        if interact_result.success:
+            self._log(
+                f"    [PostVerify] Done → "
+                f"{interact_result.current_title} ({interact_result.current_url})"
+            )
+        else:
+            self._log(
+                f"    [PostVerify] Failed (non-fatal): "
+                f"{interact_result.failure_reason[:100]}"
+            )
+
+    def _replan_and_retry(
+        self,
+        step: TraversalStep,
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+        all_sections: List[SpecSection],
+    ) -> Optional[SectionVerificationResult]:
+        """Try to replan a failed step and execute the alternative approach."""
+        for attempt in range(_MAX_REPLAN_ATTEMPTS):
+            self._log(
+                f"    [Replan] Attempt {attempt + 1}/{_MAX_REPLAN_ATTEMPTS}..."
+            )
+
+            current_url = get_current_url(self.browser_session)
+            current_title = get_current_title(self.browser_session)
+            page_content = self._get_combined_page_content()
+
+            remaining = [
+                section_map[n] for n in section_map
+                if n not in results
+            ]
+
+            replan_data = self.planner.replan_step(
+                failed_step=step,
+                failure_reason="Navigation actions did not reach the target page.",
+                current_url=current_url,
+                current_title=current_title,
+                page_content=page_content,
+                remaining_sections=remaining,
+            )
+
+            if not replan_data or not replan_data.get("can_reach", False):
+                self._log(f"    [Replan] Cannot reach '{step.target_section}'.")
+                continue
+
+            new_approach = replan_data.get("new_approach", "")
+            self._log(f"    [Replan] New approach: {new_approach[:120]}")
+
+            # Create a modified step with the new approach
+            new_step = TraversalStep(
+                target_section=step.target_section,
+                page_type=step.page_type,
+                how_to_reach=new_approach,
+                prerequisites=step.prerequisites,
+                interactions_needed=replan_data.get("actions_needed", ""),
+                phase=step.phase,
+            )
+
+            result = self._execute_step(
+                step=new_step,
+                section_map=section_map,
+                results=results,
+                all_sections=all_sections,
+            )
+
+            if result:
+                return result
+
+            # Go back to base (or inventory) to try again from a known state
+            self._log("    [Replan] Returning to base URL for next attempt...")
+            self.action_engine.navigate_to_url(self.base_url)
+
+        return None
+
+    # ================================================================
+    # Goal Building
+    # ================================================================
+
+    def _build_goal(
+        self,
+        step: TraversalStep,
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+    ) -> str:
+        """
+        Build a NAVIGATION-ONLY goal for the ActionEngine from a plan step.
+
+        CRITICAL: The goal must ONLY be about reaching the target page.
+        It must NOT include interactions_needed (like clicking Checkout,
+        filling forms, or clicking Back). Those cause the ActionEngine to
+        overshoot past the target page before we can verify it.
+        """
+        section = section_map.get(step.target_section)
+        section_desc = section.raw_text[:200] if section else ""
+
+        # ONLY navigation — no interactions on the target page
+        goal = step.how_to_reach
+
+        # Add a stop instruction so the LLM doesn't keep interacting
+        goal += (
+            f"\n\nIMPORTANT: STOP as soon as you arrive at a page that matches "
+            f"this description: {section_desc}"
+            f"\nDo NOT interact with the page after arriving. "
+            f"Do NOT click any buttons or fill any forms on the destination page. "
+            f"Do NOT navigate away from the destination page."
+        )
+
+        return goal
+
+    def _build_extra_context(self, step: TraversalStep) -> str:
+        """Build extra context for the ActionEngine (e.g., credentials)."""
+        parts = []
+
+        # Add credential info for login steps
+        if "login" in step.how_to_reach.lower() or step.page_type == "form_gateway":
+            if self.credentials:
+                creds = self.credentials[0]
+                parts.append(
+                    f"Credentials available: username='{creds.username}', "
+                    f"password='{creds.password}'"
+                )
+
+        # Add prerequisite context
+        if step.prerequisites:
+            parts.append(f"Prerequisites: {', '.join(step.prerequisites)}")
+
+        return "\n".join(parts)
+
+    # ================================================================
+    # Verification
+    # ================================================================
+
+    def _verify_section(
+        self,
+        section: SpecSection,
+        current_url: str,
+        current_title: str,
+        page_content: str,
+    ) -> SectionVerificationResult:
+        """Run SpecCheckerAgent on the current page for a section."""
         screenshot_b64 = None
         if self._base_llm.is_vision:
             from intelligent_navigator.browser.screenshot import capture_screenshot_b64
@@ -439,72 +744,54 @@ class TraversalOrchestrator:
             screenshot_b64=screenshot_b64,
         )
         result.navigation_success = True
-        results[matched_section] = result
+        return result
 
     # ================================================================
-    # Frontier Management
+    # Login / Logout
     # ================================================================
 
-    def _extend_frontier(
-        self,
-        frontier: Deque[CandidateLink],
-        current_url: str,
-        current_title: str,
-        unvisited_sections: List[SpecSection],
-    ) -> None:
-        """Run LinkDiscoveryAgent and add candidates to the frontier."""
-        candidates = self.link_discovery.discover(
-            current_url=current_url,
-            current_title=current_title,
-            unvisited_sections=unvisited_sections,
+    def _do_login(self) -> None:
+        """Log in using the first available credential set."""
+        if not self.credentials:
+            self._log("  No credentials — skipping login.")
+            return
+
+        creds = self.credentials[0]
+        self._log(f"  Logging in as: {creds.role} ({creds.username})")
+
+        # Navigate to base URL first (login page is often the landing page)
+        self.action_engine.navigate_to_url(self.base_url)
+
+        goal = (
+            f"Fill the login form with username '{creds.username}' "
+            f"and password '{creds.password}', then click the login/submit button."
         )
-        # Only add if section not already in frontier
-        frontier_sections = {c.section for c in frontier}
-        for c in candidates:
-            if c.section not in frontier_sections:
-                frontier.append(c)
-
-    # ================================================================
-    # Navigation Helpers
-    # ================================================================
-
-    def _navigate_to(self, url: str, label: str) -> bool:
-        command = NavigatorCommand(
-            command_type="explore_page",
-            target_url=url,
-            target_label=label,
-            reasoning=f"Navigate to verify spec section: {label}",
+        extra = (
+            f"The username field might have placeholder 'Username' or similar. "
+            f"The password field might have placeholder 'Password'. "
+            f"Look for input fields of type 'text' and 'password'."
         )
-        result = self.navigator.navigate(command)
-        return result.success
 
-    def _do_login(self, creds: RoleCredentials) -> None:
-        login_url = self._build_url("/login")
-        command = NavigatorCommand(
-            command_type="login",
-            target_url=login_url,
-            target_label="Login",
-            credentials=creds,
-        )
-        result = self.navigator.navigate(command)
+        result = self.action_engine.execute_goal(goal=goal, extra_context=extra)
+
         if result.success:
-            self._log(f"  Logged in as: {creds.role}")
+            self._log(f"  Login successful → {result.current_title} ({result.current_url})")
         else:
-            self._log(f"  Login failed: {result.failure_reason}")
+            self._log(f"  Login may have failed: {result.failure_reason}")
 
     def _do_logout(self) -> None:
-        command = NavigatorCommand(
-            command_type="logout",
-            target_url=self._build_url("/logout"),
-            target_label="Logout",
+        """Log out by opening hamburger menu and clicking Logout."""
+        goal = (
+            "Open the navigation menu (hamburger menu button) if it exists, "
+            "then click the 'Logout' link or button."
         )
-        self.navigator.navigate(command)
-        self._log("  Logged out.")
-
-    def _build_url(self, path: str) -> str:
-        base = self.base_url.rstrip("/")
-        path = path if path.startswith("/") else f"/{path}"
-        return f"{base}{path}"
+        result = self.action_engine.execute_goal(goal=goal)
+        if result.success:
+            self._log("  Logged out.")
+        else:
+            # Fallback: navigate to base URL
+            self.action_engine.navigate_to_url(self.base_url)
+            self._log("  Logout fallback: navigated to base URL.")
 
     # ================================================================
     # Page Content Capture
@@ -549,47 +836,18 @@ class TraversalOrchestrator:
             return ""
 
     # ================================================================
-    # Result Merging (public + per-role)
+    # Credentials
     # ================================================================
 
-    def _merge_results(
-        self,
-        all_sections: List[SpecSection],
-        role_results: Dict[str, Dict[str, SectionVerificationResult]],
-    ) -> List[SectionVerificationResult]:
-        """
-        Merge per-role results into a single list.
-        Prefer non-skipped, higher-scoring results over public-phase results.
-        """
-        merged: Dict[str, SectionVerificationResult] = {}
+    def _format_credentials_for_planner(self) -> str:
+        """Format credentials info for the traversal planner."""
+        if not self.credentials:
+            return "No credentials available."
 
-        # Start with public results as baseline
-        for name, result in role_results.get("public", {}).items():
-            merged[name] = result
-
-        # Override with authenticated results if they are better
-        for role, results in role_results.items():
-            if role == "public":
-                continue
-            for name, result in results.items():
-                existing = merged.get(name)
-                if existing is None:
-                    merged[name] = result
-                elif (
-                    existing.verdict == "skipped"
-                    or result.compliance_score > existing.compliance_score
-                ):
-                    merged[name] = result
-
-        # Ensure every section has an entry (fill in any gaps as skipped)
-        for section in all_sections:
-            if section.name not in merged:
-                merged[section.name] = self._skipped_result(
-                    section.name, self.base_url, "",
-                    reason="Section was not reached during traversal.",
-                )
-
-        return [merged[s.name] for s in all_sections]
+        lines = []
+        for c in self.credentials:
+            lines.append(f"- Role: {c.role}, Username: {c.username}, Password: {c.password}")
+        return "\n".join(lines)
 
     # ================================================================
     # Startup
@@ -659,6 +917,30 @@ class TraversalOrchestrator:
             skipped=0,
             overall_score=0.0,
         )
+
+    def _log_progress(
+        self,
+        results: Dict[str, SectionVerificationResult],
+        all_sections: List[SpecSection],
+    ) -> None:
+        """Log a progress summary after each step."""
+        verified = [
+            f"{n} ({'✅' if r.verdict == 'pass' else '⚠️' if r.verdict == 'partial' else '❌'})"
+            for n, r in results.items()
+        ]
+        remaining = [
+            s.name for s in all_sections if s.name not in results
+        ]
+        current_url = get_current_url(self.browser_session)
+        self._log(
+            f"    [Progress] {len(results)}/{len(all_sections)} verified: "
+            + ", ".join(verified)
+        )
+        if remaining:
+            self._log(
+                f"    [Progress] Remaining: {', '.join(remaining)}"
+            )
+        self._log(f"    [Progress] Current page: {current_url}")
 
     def _log(self, message: str) -> None:
         log(message, debug=self.debug, debug_file=self.debug_file)

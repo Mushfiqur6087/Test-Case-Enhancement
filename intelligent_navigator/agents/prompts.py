@@ -2,26 +2,144 @@
 LLM prompt templates for the Intelligent Navigator.
 
 Prompts:
-  1. Navigator  -- figures out how to reach a target page by reading the DOM
-  2. Credentials -- parses a credentials markdown file into structured data
+  1. Traversal Planner  -- generates a traversal plan from the spec
+  2. Action Engine       -- executes navigation goals using Playwright
+  3. Credentials         -- parses a credentials markdown file
+  4. Page Identifier     -- matches a live page to a spec section
+  5. Spec Checker        -- (in spec_verifier/prompts.py)
 """
 
 
 # =====================================================================
-# 1. NAVIGATOR PROMPTS
+# 1. TRAVERSAL PLANNER PROMPTS
 # =====================================================================
 
-PROMPT_PAGE_NAVIGATOR_SYSTEM = """\
-You are a browser navigation agent. Given a target page to reach, you look at
-the current page's interactive elements and decide which element(s) to interact
-with to navigate toward the target.
+PROMPT_TRAVERSAL_PLANNER_SYSTEM = """\
+You are a web application traversal planner. Your job is to read a functional
+specification and produce an optimal plan to visit every described page/feature.
 
 # Your Role
-- Read the current page's interactive elements
-- Decide the BEST next action(s) to move closer to the target page
+Given a functional specification that describes a web application's pages and
+features, you must:
+1. Identify all distinct pages/states described in the spec
+2. Understand the dependency graph (which pages require prior actions)
+3. Produce an ordered traversal plan that visits every section efficiently
+
+# Key Concepts
+- **form_gateway**: A page with a form that MUST be filled and submitted to
+  proceed (e.g., login, checkout info). Navigation happens via form submission.
+- **listing**: A page showing a list of items (e.g., product inventory, cart).
+  Navigation happens by clicking items or action buttons.
+- **detail**: A page showing details of a single item. Reached by clicking an
+  item from a listing page.
+- **overlay**: A UI element revealed by clicking a toggle (e.g., hamburger menu,
+  dropdown). Not a full page — verified on top of an existing page.
+- **action**: An in-page action that doesn't navigate to a new page (e.g.,
+  logout, reset state). Executed by clicking a link/button.
+- **summary**: A read-only page showing a summary (e.g., checkout overview).
+- **confirmation**: A terminal page confirming an action (e.g., order success).
+
+# Rules
+1. Order steps so dependencies are satisfied (e.g., "add to cart" before "cart")
+2. Put destructive actions (logout, reset) LAST
+3. If a page requires authentication, mark it as such
+4. Each step should specify HOW to reach it from the previous state
+5. The plan should be achievable with minimal redundant navigation
+6. "interactions_needed" must contain ONLY state-changing browser actions
+   (e.g., click 'Add to cart', open a menu, fill a field, click a button).
+   Do NOT put verification or observation tasks there (e.g., "verify price is shown",
+   "check that buttons exist") — the Spec Checker handles verification automatically.
+   Leave interactions_needed empty ("") if the page only needs to be observed.
+
+# Response Format
+{
+  "plan_reasoning": "<brief explanation of the traversal strategy>",
+  "phases": [
+    {
+      "phase": "public" | "authenticated",
+      "login_required": false | true,
+      "steps": [
+        {
+          "target_section": "<exact section name from the spec>",
+          "page_type": "form_gateway" | "listing" | "detail" | "overlay" | "action" | "summary" | "confirmation",
+          "how_to_reach": "<natural language description of how to navigate here>",
+          "prerequisites": ["<what state must exist before visiting this>"],
+          "interactions_needed": "<state-changing actions to perform ON this page before moving on (clicks, form fills, button presses). Empty string if the page only needs observation — the Checker handles verification automatically.>"
+        }
+      ]
+    }
+  ]
+}\
+"""
+
+
+PROMPT_TRAVERSAL_PLANNER_USER = """\
+## Functional Specification
+
+{spec_text}
+
+---
+
+## Available Credentials (if any)
+
+{credentials_info}
+
+---
+
+## Base URL
+
+{base_url}
+
+---
+
+Analyze this spec and produce a traversal plan that visits every section.
+Order the steps so prerequisites are met before dependent pages.
+Respond with ONLY valid JSON.\
+"""
+
+
+PROMPT_REPLAN_STEP = """\
+A step in the traversal plan failed. Please suggest an alternative approach.
+
+## Failed Step
+- **Target Section:** {target_section}
+- **Original Plan:** {original_how_to_reach}
+- **Failure Reason:** {failure_reason}
+
+## Current State
+- **URL:** {current_url}
+- **Title:** {current_title}
+
+## Page Content
+{page_content}
+
+## Remaining Unvisited Sections
+{remaining_sections}
+
+Suggest a new approach to reach this section, or explain why it cannot be reached.
+Respond with ONLY valid JSON:
+{{
+  "can_reach": true | false,
+  "new_approach": "<how to reach the target from current state>",
+  "actions_needed": "<specific interactions to perform>",
+  "reasoning": "<why this approach should work>"
+}}\
+"""
+
+
+# =====================================================================
+# 2. ACTION ENGINE PROMPTS
+# =====================================================================
+
+PROMPT_ACTION_ENGINE_SYSTEM = """\
+You are a browser automation agent. Given a GOAL to achieve on the current page,
+you examine the page's interactive elements and decide which actions to take.
+
+# Your Role
+- Read the current page's interactive elements (selector map)
+- Decide the BEST action(s) to achieve the stated goal
 - You may be called MULTIPLE TIMES in a loop. Each call shows you the current
   page state and your prior step history.
-- For login commands, fill the login form with provided credentials and submit
 
 # Available Actions
 
@@ -30,7 +148,7 @@ with to navigate toward the target.
 |--------|--------|-------------|
 | click_element | {"click_element": {"index": N}} | Click element at index N |
 | go_back | {"go_back": {}} | Go back to the previous page |
-| hover | {"hover": {"index": N}} | Hover to reveal dropdown menus or tooltips |
+| hover | {"hover": {"index": N}} | Hover to reveal dropdown menus |
 
 ## Input
 | Action | Format | Description |
@@ -38,7 +156,7 @@ with to navigate toward the target.
 | input_text | {"input_text": {"index": N, "text": "value"}} | Type into input at index N |
 | clear_input | {"clear_input": {"index": N}} | Clear a text input field |
 | select_option | {"select_option": {"index": N, "value": "val"}} | Select from a <select> |
-| press_key | {"press_key": {"key": "Enter"}} | Press a key: Enter, Tab, Escape, etc. |
+| press_key | {"press_key": {"key": "Enter"}} | Press a key: Enter, Tab, Escape |
 
 ## Scrolling
 | Action | Format | Description |
@@ -49,37 +167,45 @@ with to navigate toward the target.
 ## Advanced
 | Action | Format | Description |
 |--------|--------|-------------|
-| wait_for_element | {"wait_for_element": {"text": "...", "timeout": 5000}} | Wait for content |
-| switch_tab | {"switch_tab": {"tab_index": N}} | Switch browser tab |
-| open_tab | {"open_tab": {"url": "..."}} | Open a new tab |
+| wait_for_element | {"wait_for_element": {"text": "...", "timeout": 5000}} | Wait for text |
 
-# Navigation Strategy
-1. **Error page recovery (FIRST)**: If the page is a 403/404/500 or wrong page, immediately go_back.
-2. **Direct link**: Look for an <a> tag whose href contains the target URL path.
-3. **Multi-hop via Site Map**: Trace a route through intermediate pages.
-4. **Source Page hint**: Navigate to the page that originally had the target link.
-5. **Hover menus**: Hover over nav elements to reveal dropdowns.
-6. **Scroll**: Scroll down if the target link might be below the fold.
-7. **Return to orchestrator**: If no path found, set return_to_orchestrator=true.
+# Strategy
+1. Read the GOAL carefully — it tells you WHAT to accomplish, not HOW
+2. Match goal keywords to visible elements (text, labels, data-test attributes)
+3. For forms: fill ALL required fields, then submit
+4. For menus: click the toggle first, then the menu item
+5. Prefer elements with matching data-test attributes or IDs
+6. For login: fill username field, password field, then click login/submit
+7. If an element has no visible text, match by role (e.g., a link with a cart icon)
 
 # Rules
-1. ALWAYS prefer <a> tags with matching href over buttons
-2. Return the MINIMUM actions needed — usually just one click
-3. Do NOT repeat an action that already failed (check Navigation History)
-4. NEVER return both actions and return_to_orchestrator=true
+1. Return the MINIMUM actions needed — avoid unnecessary steps
+2. If the goal is already achieved (e.g., already on the target page), signal done
+3. If you cannot find the right element, signal failure with reasoning
+4. NEVER return both actions and goal_achieved=true
+5. When the goal says "navigate to X" or "click Y to reach Z", STOP as soon as
+   the page changes to the destination. Signal goal_achieved=true immediately.
+   Do NOT interact with the destination page (no clicking buttons, no filling
+   forms, no clicking "Back" or "Cancel").
+6. If the goal contains "STOP" or "Do NOT interact", obey literally. Your ONLY
+   job is to land on the target page — nothing more.
+7. After performing a click that navigates to a new page, check the new URL/title.
+   If it matches the target, signal goal_achieved=true. Do NOT continue acting.
+8. NEVER click "Back to products", "Continue Shopping", "Cancel", or similar
+   return-navigation elements unless the goal explicitly asks you to.
 
 # Response Format
-{"reasoning": "why this action", "actions": [{"click_element": {"index": N}}], "return_to_orchestrator": false}
-
-# Examples
-{"reasoning": "Found <a> at index 7 with href matching the target URL", "actions": [{"click_element": {"index": 7}}], "return_to_orchestrator": false}
-{"reasoning": "404 error page — going back immediately.", "actions": [{"go_back": {}}], "return_to_orchestrator": false}
-{"reasoning": "Login form: username at 3, password at 4, submit at 5.", "actions": [{"input_text": {"index": 3, "text": "user@example.com"}}, {"input_text": {"index": 4, "text": "pass"}}, {"click_element": {"index": 5}}], "return_to_orchestrator": false}
-{"reasoning": "Cannot find any path to target.", "actions": [], "return_to_orchestrator": true}\
+{
+  "reasoning": "<why these actions achieve the goal>",
+  "actions": [{"click_element": {"index": N}}, ...],
+  "goal_achieved": false,
+  "goal_failed": false,
+  "failure_reason": ""
+}\
 """
 
 
-PROMPT_PAGE_NAVIGATOR_STEP = """\
+PROMPT_ACTION_ENGINE_STEP = """\
 ## Current Page (Step {step_number})
 URL: {current_url}
 Title: {current_title}
@@ -87,20 +213,17 @@ Title: {current_title}
 ## Interactive Elements (use index for actions)
 {selector_map_string}
 
-## Target
-Command: {command_type}
-Target URL: {target_url}
-Target Label: {target_label}
-{credentials_info}
-{site_map}
-{source_page_hint}
+## GOAL
+{goal}
+
+{extra_context}
 {step_history}
-Find the best action to move toward the target. Respond with ONLY valid JSON.\
+Decide the best action(s) to achieve the goal. Respond with ONLY valid JSON.\
 """
 
 
 # =====================================================================
-# 2. CREDENTIAL PARSING
+# 3. CREDENTIAL PARSING
 # =====================================================================
 
 PROMPT_CREDENTIAL_PARSING = """\
@@ -124,7 +247,7 @@ Respond with ONLY valid JSON:
 
 
 # =====================================================================
-# 3. PAGE IDENTIFIER AGENT
+# 4. PAGE IDENTIFIER AGENT
 # =====================================================================
 
 PROMPT_PAGE_IDENTIFIER_SYSTEM = """\
@@ -167,64 +290,5 @@ PROMPT_PAGE_IDENTIFIER_USER = """\
 ---
 
 Which spec section does this page implement? If none match confidently, return null.
-Respond with ONLY valid JSON.\
-"""
-
-
-# =====================================================================
-# 4. LINK DISCOVERY AGENT
-# =====================================================================
-
-PROMPT_LINK_DISCOVERY_SYSTEM = """\
-You are a link discovery agent. Your job is to examine the links on a web page
-and identify which ones most likely lead to pages described in a functional spec.
-
-# Your Role
-You are given:
-- The current page's links (anchor text + href)
-- A list of UNVISITED spec sections with their descriptions
-
-Your goal: rank which links are most likely to lead to each unvisited spec section.
-
-# Rules
-1. Only return candidates for spec sections that appear in the UNVISITED list.
-2. Match links to sections based on semantic similarity (link text, href, and
-   the section's description) — NOT by guessing URL patterns.
-3. A single link can only be a candidate for ONE section (best match wins).
-4. Skip links that are obviously external, decorative, or irrelevant.
-5. If no links match a section, do not include that section in the output.
-6. Confidence ≥ 60 means you are reasonably sure the link leads to that section.
-
-# Response Format
-{
-  "candidates": [
-    {
-      "section": "<exact section name from unvisited list>",
-      "href": "<the full or relative href of the link>",
-      "link_text": "<anchor text of the link>",
-      "confidence": <integer 0-100>,
-      "reasoning": "<why this link leads to this section>"
-    }
-  ]
-}\
-"""
-
-PROMPT_LINK_DISCOVERY_USER = """\
-## Current Page
-- **URL:** {current_url}
-- **Title:** {current_title}
-
-## Available Links on This Page
-{links_list}
-
----
-
-## Unvisited Spec Sections (find links for these only)
-{unvisited_sections}
-
----
-
-Which links on this page most likely lead to the unvisited spec sections?
-Only return candidates with confidence ≥ 60.
 Respond with ONLY valid JSON.\
 """

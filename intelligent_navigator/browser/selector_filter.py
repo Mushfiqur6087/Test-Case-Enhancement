@@ -119,16 +119,19 @@ class SelectorMapFilter:
         if tag == "button":
             return True
 
-        # 7. <a> tags with real href
+        # 7. <a> tags
         if tag == "a":
             href = attrs.get("href", "")
             # Skip-links: href="#..." with "Skip" in text
             if href.startswith("#") and "skip" in inner_text.lower():
                 return False
-            # Anchor-only links with no role are low value
-            if href.startswith("#") and not role:
-                return False
-            # Real navigation links
+            # SPA links (href="#") with no text AND no id/data-test → decorative
+            if href.startswith("#") and not inner_text and not role:
+                has_id = bool(attrs.get("id"))
+                has_data = any(k.startswith("data-") for k in attrs)
+                if not has_id and not has_data:
+                    return False
+            # Everything else (including SPA links with text or data-test) is kept
             return True
 
         # 8. Elements with meaningful ARIA roles

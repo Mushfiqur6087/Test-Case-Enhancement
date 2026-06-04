@@ -132,8 +132,8 @@ class DOMTreeParser:
         return self._flat_map
 
     def _flatten(self, node: DOMElementNode) -> None:
-        """Recursively collect interactive nodes into _flat_map."""
-        if node.is_interactive:
+        """Recursively collect interactive AND visible nodes into _flat_map."""
+        if node.is_interactive and node.is_visible:
             self._flat_map[self._flat_index] = node
             self._flat_index += 1
         for child in node.children:

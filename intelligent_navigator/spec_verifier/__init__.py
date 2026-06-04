@@ -1,14 +1,15 @@
 """
-Spec Verifier — Agentic traversal-based compliance checker.
+Spec Verifier — Plan-based agentic traversal compliance checker.
 
-Navigates the live web application by following real links (discovered by
-LinkDiscoveryAgent), identifies each page using PageIdentifierAgent, and
-verifies it against the functional specification using SpecCheckerAgent.
+Uses a TraversalPlannerAgent to analyze the functional specification and
+generate an ordered traversal plan. An ActionEngine then executes each
+step using Playwright-driven actions. Pages are identified by
+PageIdentifierAgent and verified by SpecCheckerAgent.
 
-No hardcoded URL mappings. No keyword guessing.
+No hardcoded URL mappings. No keyword guessing. No BFS link discovery.
 
 Main entry points:
-  - TraversalOrchestrator : drives the full zero-hardcoding verification run
+  - TraversalOrchestrator : drives the full plan-based verification run
   - SpecVerifier          : alias for backward compatibility with __main__.py
   - VerificationReport    : the final output dataclass (also in core.models)
 """

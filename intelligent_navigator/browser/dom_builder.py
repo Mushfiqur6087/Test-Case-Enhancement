@@ -32,11 +32,51 @@ class DomTreeBuilder:
                 isElementVisible: (element) => {
                     if (!element) return false;
                     const style = window.getComputedStyle(element);
-                    return element.offsetWidth > 0 &&
-                           element.offsetHeight > 0 &&
-                           style.display !== 'none' &&
-                           style.visibility !== 'hidden' &&
-                           style.opacity !== '0';
+
+                    // Hard-invisible: these always mean "not rendered"
+                    if (style.display === 'none' ||
+                        style.visibility === 'hidden' ||
+                        style.opacity === '0') {
+                        return false;
+                    }
+
+                    // Standard check: element has its own non-zero dimensions
+                    if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+                        return true;
+                    }
+
+                    // Fallback 1: getBoundingClientRect — works for fixed/absolute
+                    // elements where offsetWidth can be unreliable (e.g., icon buttons
+                    // positioned with transform or inside overflow:hidden wrappers)
+                    const rect = element.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        return true;
+                    }
+
+                    // Fallback 2: for interactive elements (buttons, links, inputs,
+                    // role="button", etc.) check if any direct child has non-zero rect.
+                    // This catches SVG-icon buttons and hamburger-menu style triggers
+                    // where the <button> itself is 0x0 but its <span> children are visible.
+                    const tag = element.tagName.toLowerCase();
+                    const isInteractiveTag = ['button', 'a', 'input', 'select', 'textarea'].includes(tag);
+                    const hasRole = element.hasAttribute('role');
+                    if (isInteractiveTag || hasRole) {
+                        for (let i = 0; i < element.children.length; i++) {
+                            const childRect = element.children[i].getBoundingClientRect();
+                            if (childRect.width > 0 && childRect.height > 0) {
+                                return true;
+                            }
+                        }
+                        // Also treat it as visible if it has an aria-label or
+                        // aria-expanded — it's a meaningful, labelled control
+                        // even if temporarily zero-sized.
+                        if (element.hasAttribute('aria-label') ||
+                            element.hasAttribute('aria-expanded')) {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 },
 
                 isInteractiveElement: (element) => {
@@ -157,7 +197,32 @@ class DomTreeBuilder:
         is_visible = self.is_element_visible(element_handle)
         is_in_viewport = self.is_in_viewport(element_handle)
 
-        if not is_visible or not is_in_viewport:
+        # Prune aria-hidden="true" subtrees: these are intentionally hidden from
+        # assistive technology and keyboard interaction. Closed overlay containers
+        # (e.g., react-burger-menu's bm-menu-wrap) set aria-hidden="true" when
+        # collapsed — skipping them removes sidebar links from the selector map
+        # while the menu is closed. When the menu opens, aria-hidden becomes
+        # "false" and the links are included normally.
+        try:
+            aria_hidden = element_handle.get_attribute("aria-hidden")
+            if aria_hidden == "true":
+                if self.debug_mode:
+                    self.perf_metrics["node_metrics"]["skipped_nodes"] += 1
+                return None
+        except Exception:
+            pass
+
+        # Only hard-prune nodes that are truly outside the viewport.
+        # FullPageDomTreeBuilder overrides is_in_viewport to always return True,
+        # so this never prunes in practice during full-page capture.
+        #
+        # We deliberately do NOT prune based on is_visible here — if we did,
+        # any child element inside an invisible parent container would be
+        # silently skipped. This was causing hamburger-menu buttons (which are
+        # position:fixed and visually present) to be missed when their wrapper
+        # div had offsetWidth/Height = 0. Each child now checks its own
+        # visibility independently via is_element_visible.
+        if not is_in_viewport:
             if self.debug_mode:
                 self.perf_metrics["node_metrics"]["skipped_nodes"] += 1
             return None

@@ -23,14 +23,17 @@ class NavigatorCommand:
 
     command_type:
         - explore_page : navigate to target_url so we can capture its DOM
+        - click_element: click a specific element identified by link_text on the
+                         current page (used for SPA navigation where href="#")
         - login        : navigate to the login page and fill credentials
         - logout       : click the logout link on the current page
     """
-    command_type: str   # "explore_page" | "login" | "logout"
+    command_type: str   # "explore_page" | "click_element" | "login" | "logout"
     target_url: str = ""
     target_label: str = ""
     credentials: Optional[RoleCredentials] = None
     reasoning: str = ""
+    click_target_text: str = ""   # visible text of the element to click (for click_element)
 
 
 @dataclass
