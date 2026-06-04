@@ -28,6 +28,9 @@ features, you must:
 # Key Concepts
 - **form_gateway**: A page with a form that MUST be filled and submitted to
   proceed (e.g., login, checkout info). Navigation happens via form submission.
+  IMPORTANT: `how_to_reach` must describe ONLY how to NAVIGATE to this page —
+  do NOT include form submission or filling in `how_to_reach`. Put those in
+  `interactions_needed` instead. The system handles submission separately.
 - **listing**: A page showing a list of items (e.g., product inventory, cart).
   Navigation happens by clicking items or action buttons.
 - **detail**: A page showing details of a single item. Reached by clicking an
@@ -62,7 +65,7 @@ features, you must:
         {
           "target_section": "<exact section name from the spec>",
           "page_type": "form_gateway" | "listing" | "detail" | "overlay" | "action" | "summary" | "confirmation",
-          "how_to_reach": "<natural language description of how to navigate here>",
+          "how_to_reach": "<natural language: how to NAVIGATE to this page only>",
           "prerequisites": ["<what state must exist before visiting this>"],
           "interactions_needed": "<state-changing actions to perform ON this page before moving on (clicks, form fills, button presses). Empty string if the page only needs observation — the Checker handles verification automatically.>"
         }
@@ -147,6 +150,7 @@ you examine the page's interactive elements and decide which actions to take.
 | Action | Format | Description |
 |--------|--------|-------------|
 | click_element | {"click_element": {"index": N}} | Click element at index N |
+| navigate_to | {"navigate_to": {"url": "https://..."}} | Direct URL navigation |
 | go_back | {"go_back": {}} | Go back to the previous page |
 | hover | {"hover": {"index": N}} | Hover to reveal dropdown menus |
 
@@ -177,20 +181,23 @@ you examine the page's interactive elements and decide which actions to take.
 5. Prefer elements with matching data-test attributes or IDs
 6. For login: fill username field, password field, then click login/submit
 7. If an element has no visible text, match by role (e.g., a link with a cart icon)
+8. Use navigate_to only when you have an explicit URL target — prefer clicking otherwise
 
 # Rules
 1. Return the MINIMUM actions needed — avoid unnecessary steps
 2. If the goal is already achieved (e.g., already on the target page), signal done
 3. If you cannot find the right element, signal failure with reasoning
-4. NEVER return both actions and goal_achieved=true
+4. If you include actions, set goal_achieved=false — it will be re-evaluated on
+   the NEXT step after those actions execute. Never set goal_achieved=true when
+   you are also listing actions to perform.
 5. When the goal says "navigate to X" or "click Y to reach Z", STOP as soon as
    the page changes to the destination. Signal goal_achieved=true immediately.
    Do NOT interact with the destination page (no clicking buttons, no filling
    forms, no clicking "Back" or "Cancel").
 6. If the goal contains "STOP" or "Do NOT interact", obey literally. Your ONLY
    job is to land on the target page — nothing more.
-7. After performing a click that navigates to a new page, check the new URL/title.
-   If it matches the target, signal goal_achieved=true. Do NOT continue acting.
+7. On each step, check the current URL and title. If they match the target,
+   set goal_achieved=true (with no actions). Do NOT continue acting.
 8. NEVER click "Back to products", "Continue Shopping", "Cancel", or similar
    return-navigation elements unless the goal explicitly asks you to.
 
@@ -265,6 +272,9 @@ this page implements — if any.
    landing page, or navigation page with no clear spec match, return null.
 3. Return EXACTLY ONE matched section (the best match), or null.
 4. Do NOT match a section if the page is clearly an error page (404, 403, 500).
+5. For "overlay" and "action" type sections (e.g., a hamburger menu, a reset
+   confirmation), the URL may be IDENTICAL to the previous page. Match based
+   on visible content and interactive elements alone — do not require a URL change.
 
 # Response Format
 {

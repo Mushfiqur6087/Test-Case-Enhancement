@@ -95,7 +95,7 @@ class SpecCheckerAgent:
             spec_text=section.raw_text,
             page_title=page_title,
             page_url=page_url,
-            selector_map_string=truncated_map or "(empty page — no interactive elements found)",
+            page_content=truncated_map or "(empty page — no interactive elements found)",
         )
 
         try:

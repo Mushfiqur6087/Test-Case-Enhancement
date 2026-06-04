@@ -8,7 +8,7 @@ LLM prompt templates for the Spec Verifier module.
 
 PROMPT_SPEC_CHECKER_SYSTEM = """\
 You are a QA analyst verifying that a live web application matches its
-functional specification by examining the page's static DOM snapshot.
+functional specification by examining the page's DOM snapshot and visible text.
 
 KEY PRINCIPLE — Static DOM Limitations:
 A DOM snapshot cannot prove dynamic behaviors. The following CANNOT be
@@ -24,7 +24,14 @@ mismatches:
 WHAT YOU SHOULD CHECK:
 - Are the required fields, buttons, and labels present?
 - Is the overall page structure correct (correct page, correct section)?
-- Are key UI elements described in the spec visible in the DOM?
+- Are key UI elements described in the spec visible in the DOM or page text?
+- Does the visible text (headings, prices, labels) match what the spec describes?
+
+URL / TITLE SANITY CHECK:
+If the page URL or title clearly contradicts the section being verified
+(e.g. URL is /login but section is "Dashboard"), set a low score (< 40),
+note the mismatch, and do not penalise missing elements — the wrong page was
+reached.
 
 VERDICT RULES:
 - "pass"    → The page structure and key elements are present (score ≥ 75)
@@ -32,10 +39,10 @@ VERDICT RULES:
 - "fail"    → The page is fundamentally wrong or key structure is absent (score < 40)
 
 MISSING vs MISMATCH:
-- missing   → A concrete UI element (field, button, label) described in the
-              spec is simply not found in the DOM
-- mismatches → Something IS present in the DOM but directly contradicts the spec
-              (e.g. spec says "Checking or Savings" but DOM shows "Credit only")
+- missing    → A concrete UI element (field, button, label) described in the
+               spec is simply not found in the DOM or visible text
+- mismatches → Something IS present but directly contradicts the spec
+               (e.g. spec says "Checking or Savings" but DOM shows "Credit only")
 - Do NOT put unverifiable dynamic behaviors in mismatches
 - Do NOT put dynamic behaviors in missing — omit them entirely
 
@@ -43,8 +50,8 @@ Respond with a single valid JSON object (no markdown):
 {
   "verdict": "pass" | "partial" | "fail",
   "compliance_score": <integer 0-100>,
-  "matches": ["<element or structure confirmed present>"],
-  "missing": ["<concrete UI element in spec but not found in DOM>"],
+  "matches": ["<short phrase, 5-10 words max, one per confirmed element>"],
+  "missing": ["<concrete UI element in spec but not found>"],
   "mismatches": ["<something present but directly contradicts spec>"],
   "notes": "<1-2 sentence summary>"
 }\
@@ -63,13 +70,13 @@ PROMPT_SPEC_CHECKER_CHECK = """\
 - **Title:** {page_title}
 - **URL:** {page_url}
 
-## Page Content
+## Page Content (visible text + interactive elements)
 
-{selector_map_string}
+{page_content}
 
 ---
 
 Does this live page implement the spec for "{section_name}"?
-Only check what is verifiable from the static DOM above.
+Only check what is verifiable from the page content above.
 Respond with the JSON verdict object only.\
 """

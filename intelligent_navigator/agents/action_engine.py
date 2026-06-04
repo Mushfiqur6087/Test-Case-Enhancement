@@ -469,27 +469,25 @@ class ActionEngine:
     }
 
     def _format_step_history(self, history: List[Dict[str, Any]]) -> str:
-        """Format step history for the LLM prompt."""
+        """Format step history as compact single-line entries for the LLM prompt."""
         if not history:
             return ""
 
         lines = ["\n## Action History (previous steps for this goal)"]
         for record in history:
             step = record["step"]
-            lines.append(f"\n### Step {step}")
-            lines.append(f"- Page before: {record['url_before']}")
-            lines.append(f"- Reasoning: {record['reasoning']}")
-            if record.get("actions"):
-                action_descs = []
-                for action in record["actions"]:
-                    action_name = list(action.keys())[0]
-                    action_params = action[action_name]
-                    formatter = self._action_formatters.get(action_name)
-                    if formatter:
-                        action_descs.append(formatter(action_params))
-                    else:
-                        action_descs.append(f"{action_name}({action_params})")
-                lines.append(f"- Actions: {', '.join(action_descs)}")
-            lines.append(f"- Result: landed on {record['title_after']} ({record['url_after']})")
+            action_descs = []
+            for action in record.get("actions", []):
+                action_name = list(action.keys())[0]
+                action_params = action[action_name]
+                formatter = self._action_formatters.get(action_name)
+                if formatter:
+                    action_descs.append(formatter(action_params))
+                else:
+                    action_descs.append(f"{action_name}({action_params})")
+            actions_str = ", ".join(action_descs) if action_descs else "no actions"
+            lines.append(
+                f"Step {step}: [{actions_str}] → {record['title_after']} ({record['url_after']})"
+            )
 
         return "\n".join(lines)
