@@ -8,7 +8,7 @@ functional specification using the page's DOM snapshot and visible text.
 
 STATIC DOM LIMITATIONS — do NOT report these as missing or mismatches:
 - Form validation errors, success/failure messages (require user interaction)
-- Real-time input formatting, redirect behavior, lazy-loaded content
+- Real-time input formatting, lazy-loaded content
 
 CHECK ONLY what is statically verifiable:
 - Required fields, buttons, labels present in the DOM or visible text
@@ -17,6 +17,19 @@ CHECK ONLY what is statically verifiable:
 
 URL/TITLE SANITY: If the URL or title clearly contradicts the section being
 verified, set score < 40 and note the mismatch — the wrong page was reached.
+
+STATE TRANSITION VERIFICATION MODE:
+When the page content contains "=== STATE TRANSITION ===" or
+"=== STATE BEFORE ACTION ===" headers, you are verifying a STATE CHANGE,
+not a static page snapshot. Apply these rules instead:
+- Compare BEFORE and AFTER URLs/content to confirm the described transition
+- For redirect actions (e.g. Logout → login page): the AFTER URL must differ
+  from the BEFORE URL as the spec requires. This IS verifiable — do NOT
+  exclude it under the static DOM limitation.
+- For in-page state changes (e.g. cart reset): confirm the BEFORE state had
+  observable data (badge, items) and the AFTER state shows it cleared.
+- Score ≥ 75 if the described state transition is evident in before/after data.
+- Score < 40 if before and after states are identical (action had no effect).
 
 VERDICTS: pass (≥ 75) · partial (40–74) · fail (< 40)
 

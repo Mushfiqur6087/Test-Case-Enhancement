@@ -207,7 +207,12 @@ class TraversalOrchestrator:
                 self._log("=" * 40)
 
                 if step.phase == "authenticated" and not logged_in:
-                    self._do_login()
+                    # The plan's own form_gateway Login step should have
+                    # already submitted credentials via Phase B. If so,
+                    # logged_in was set below and we skip this entirely.
+                    # This is only the FALLBACK for apps where the Login
+                    # section is absent from the spec or wasn't planned.
+                    self._ensure_authenticated()
                     logged_in = True
 
             self._log(
@@ -232,6 +237,26 @@ class TraversalOrchestrator:
                     f"    Result: {result.verdict.upper()} "
                     f"({result.compliance_score}/100)"
                 )
+
+                # ---- Track authentication state from the plan itself ----
+                # When the plan's own Login step (a form_gateway) succeeds and
+                # credentials were available, Phase B submitted them — the
+                # session is now authenticated. Record this so the phase
+                # transition to 'authenticated' knows NOT to call
+                # _ensure_authenticated() again.
+                if (
+                    not logged_in
+                    and step.page_type == "form_gateway"
+                    and self.credentials
+                    and result.navigation_success
+                    and self._step_is_auth_intent(step)
+                ):
+                    logged_in = True
+                    self._log(
+                        "    [Auth] Credentials submitted via plan's form_gateway — "
+                        "session is now authenticated."
+                    )
+
             else:
                 self._log(f"    Result: Navigation failed — will try replanning.")
 
@@ -557,32 +582,47 @@ class TraversalOrchestrator:
         the checker can't know what the state was *before* the action.
 
         This method:
+          0. Ensures prerequisite observable state exists (Fix 2)
           1. Captures the full page state BEFORE the action
           2. Executes the action via ActionEngine
           3. Captures the full page state AFTER the action
-          4. Builds a combined before/after context string
+          4. Builds a combined before/after context:
+               - Vision models: compact URL header + before+after screenshots
+               - Non-vision: full before+after text DOM dumps (unchanged)
           5. Passes both states to the checker so it can reason about the diff
 
         This is completely generic — works for any app, any action type.
-        The LLM naturally understands before/after state comparisons.
         """
-        # 1. Capture BEFORE state
+        # 0. Ensure observable state exists so before/after diff is meaningful
+        self._setup_action_prerequisites(step, section)
+
+        # 1. Capture BEFORE state (text always; screenshot for vision models)
         before_url = get_current_url(self.browser_session)
         before_title = get_current_title(self.browser_session)
         before_content = self._get_combined_page_content()
+        before_screenshot_b64 = None
+        if self._base_llm.is_vision:
+            from intelligent_navigator.browser.screenshot import capture_screenshot_b64
+            before_screenshot_b64 = capture_screenshot_b64(self.browser_session)
 
         self._log(
             f"    [Action] Capturing before-state: {before_title} ({before_url})"
         )
 
-        # 2. Execute the action — single-shot, no loop.
-        # Action steps complete in 1 click. The multi-step loop is
-        # counterproductive: Step 1 succeeds (e.g., Logout navigates to login),
-        # then Step 2 second-guesses and reverses the work.
+        # 2. Execute the action.
+        # Action steps are typically 1–2 clicks, but some require a
+        # trigger-then-click sequence, e.g.:
+        #   Step 1: open hamburger menu
+        #   Step 2: click 'Logout' link inside the now-visible menu
+        #   Step 3: (optional) wait/confirm redirect to login
+        #
+        # max_steps=3 gives enough room for open-trigger + click + settle
+        # while still being tight enough to prevent multi-step loops that
+        # would second-guess and undo completed actions.
         action_result = self.action_engine.execute_goal(
             goal=goal,
             extra_context=extra_context,
-            max_steps=1,
+            max_steps=3,
         )
 
         if not action_result.success:
@@ -601,22 +641,37 @@ class TraversalOrchestrator:
         after_title = get_current_title(self.browser_session)
         after_content = self._get_combined_page_content()
 
-        # 4. Build combined before/after context for the checker
-        # The checker can now reason about transitions:
-        #   "badge count 2 → 0" = state cleared ✓
-        #   "dashboard.html → login page" = session ended ✓
-        combined_content = (
-            f"=== STATE BEFORE ACTION ===\n"
-            f"URL: {before_url}\n"
-            f"Title: {before_title}\n"
-            f"{before_content}\n\n"
-            f"=== ACTION PERFORMED ===\n"
-            f"The action '{step.target_section}' was executed.\n\n"
-            f"=== STATE AFTER ACTION (current page) ===\n"
-            f"URL: {after_url}\n"
-            f"Title: {after_title}\n"
-            f"{after_content}"
-        )
+        # 4. Build combined before/after context for the checker.
+        # Vision models: compact URL header + two screenshots (cheaper, more
+        # reliable — badge counts and page changes are visually unambiguous).
+        # Non-vision models: full text dumps (only option available).
+        if self._base_llm.is_vision and before_screenshot_b64:
+            combined_content = (
+                f"=== STATE TRANSITION ===\n"
+                f"Before URL: {before_url}\n"
+                f"Before Title: {before_title}\n"
+                f"Action: '{step.target_section}' was executed.\n"
+                f"After URL:  {after_url}\n"
+                f"After Title: {after_title}\n"
+                f"(See the before and after screenshots for full visual state)"
+            )
+        else:
+            # Non-vision fallback: send full text DOM diffs
+            # The checker can now reason about transitions:
+            #   "badge count 2 → 0" = state cleared ✓
+            #   "dashboard.html → login page" = session ended ✓
+            combined_content = (
+                f"=== STATE BEFORE ACTION ===\n"
+                f"URL: {before_url}\n"
+                f"Title: {before_title}\n"
+                f"{before_content}\n\n"
+                f"=== ACTION PERFORMED ===\n"
+                f"The action '{step.target_section}' was executed.\n\n"
+                f"=== STATE AFTER ACTION (current page) ===\n"
+                f"URL: {after_url}\n"
+                f"Title: {after_title}\n"
+                f"{after_content}"
+            )
 
         # 5. Verify with combined before/after context
         result = self._verify_section(
@@ -624,6 +679,7 @@ class TraversalOrchestrator:
             current_url=after_url,
             current_title=after_title,
             page_content=combined_content,
+            before_screenshot_b64=before_screenshot_b64,
         )
 
         self._log(
@@ -635,6 +691,85 @@ class TraversalOrchestrator:
         self._run_post_verify_interactions(step)
 
         return result
+
+    def _setup_action_prerequisites(
+        self,
+        step: TraversalStep,
+        section: SpecSection,
+    ) -> None:
+        """
+        Ensure observable state exists BEFORE capturing the before-state snapshot
+        for an action step.
+
+        Action steps (Reset App State, Logout, Delete, etc.) are verified by
+        comparing BEFORE vs AFTER page state. If the state the action is supposed
+        to change doesn't exist yet, both snapshots will be identical — giving
+        the checker nothing to diff and producing a PARTIAL score.
+
+        This method asks the LLM: "Given this action's spec, what observable
+        state must exist for the change to be verifiable?" and, if that state
+        is missing from the current page, runs ActionEngine to set it up.
+
+        Examples:
+          - "Reset App State" spec says it clears the cart →
+            prerequisite = at least one item in the cart (badge visible)
+          - "Delete Record" spec says it removes a row →
+            prerequisite = at least one record in the listing
+
+        This is generic — driven entirely by the spec text, not hardcoded.
+        """
+        from intelligent_navigator.agents.prompts import PROMPT_ACTION_PREREQUISITE_CHECK
+        from intelligent_navigator.core.utils import parse_llm_json
+
+        current_url = get_current_url(self.browser_session)
+        page_content = self._get_combined_page_content()
+
+        prompt = PROMPT_ACTION_PREREQUISITE_CHECK.format(
+            section_name=step.target_section,
+            spec_text=section.raw_text,
+            current_url=current_url,
+            page_content=page_content[:4000],
+        )
+
+        try:
+            response = self._base_llm.ask(prompt)
+            self.llm_call_count += 1
+            data = parse_llm_json(response)
+        except Exception as e:
+            self._log(f"    [PrereqCheck] LLM error: {e} — skipping prerequisite setup.")
+            return
+
+        setup_needed = data.get("setup_needed", False)
+        setup_goal = data.get("setup_actions", "")
+        reasoning = data.get("reasoning", "")
+
+        if not setup_needed or not setup_goal:
+            self._log(
+                f"    [PrereqCheck] Observable state present — no setup needed. "
+                f"({reasoning[:80]})"
+            )
+            return
+
+        self._log(
+            f"    [PrereqCheck] Setup needed before '{step.target_section}': "
+            f"{setup_goal[:120]}"
+        )
+
+        setup_result = self.action_engine.execute_goal(
+            goal=setup_goal,
+            max_steps=3,
+        )
+
+        if setup_result.success:
+            self._log(
+                f"    [PrereqCheck] Setup done → "
+                f"{setup_result.current_title} ({setup_result.current_url})"
+            )
+        else:
+            self._log(
+                f"    [PrereqCheck] Setup failed (non-fatal): "
+                f"{setup_result.failure_reason[:100]}"
+            )
 
     def _identify_and_verify(
         self,
@@ -1020,18 +1155,42 @@ class TraversalOrchestrator:
 
         return goal
 
-    def _build_extra_context(self, step: TraversalStep) -> str:
-        """Build extra context for the ActionEngine (e.g., credentials)."""
+    # Keywords that signal a step is an authentication/login form.
+    # Used to narrow credential injection to only relevant form_gateway steps.
+    _AUTH_INTENT_KEYWORDS = {
+        "login", "log in", "log-in", "sign in", "sign-in",
+        "signin", "authenticate", "authentication", "credentials",
+    }
+
+    def _step_is_auth_intent(self, step: "TraversalStep") -> bool:
+        """Return True if this step is an authentication/login step.
+
+        Checks the target_section name and how_to_reach text against a set
+        of auth-intent keywords. This determines whether credentials should
+        be injected into the ActionEngine prompt and whether a successful
+        form_gateway execution counts as 'logged in'.
+        """
+        haystack = (
+            step.target_section.lower() + " " + step.how_to_reach.lower()
+        )
+        return any(kw in haystack for kw in self._AUTH_INTENT_KEYWORDS)
+
+    def _build_extra_context(self, step: "TraversalStep") -> str:
+        """Build extra context for the ActionEngine (e.g., credentials).
+
+        Credentials are injected ONLY for authentication-intent steps
+        (login, sign-in, authenticate) to avoid leaking them into unrelated
+        forms such as registration, data-entry, or payment fields.
+        """
         parts = []
 
-        # Add credential info for login steps
-        if "login" in step.how_to_reach.lower() or step.page_type == "form_gateway":
-            if self.credentials:
-                creds = self.credentials[0]
-                parts.append(
-                    f"Credentials available: username='{creds.username}', "
-                    f"password='{creds.password}'"
-                )
+        # Inject credentials only when the step is an auth/login step
+        if self._step_is_auth_intent(step) and self.credentials:
+            creds = self.credentials[0]
+            parts.append(
+                f"Credentials available: username='{creds.username}', "
+                f"password='{creds.password}'"
+            )
 
         # Add prerequisite context
         if step.prerequisites:
@@ -1049,8 +1208,17 @@ class TraversalOrchestrator:
         current_url: str,
         current_title: str,
         page_content: str,
+        before_screenshot_b64: Optional[str] = None,
     ) -> SectionVerificationResult:
-        """Run SpecCheckerAgent on the current page for a section."""
+        """Run SpecCheckerAgent on the current page for a section.
+
+        Parameters
+        ----------
+        before_screenshot_b64 : Optional base64 PNG of the BEFORE state.
+            When provided (action steps, vision model), both the before and
+            after screenshots are passed to the checker so it can diff them
+            visually for state-transition verification.
+        """
         screenshot_b64 = None
         if self._base_llm.is_vision:
             from intelligent_navigator.browser.screenshot import capture_screenshot_b64
@@ -1064,6 +1232,7 @@ class TraversalOrchestrator:
             actual_url=current_url,
             actual_title=current_title,
             screenshot_b64=screenshot_b64,
+            before_screenshot_b64=before_screenshot_b64,
         )
         result.navigation_success = True
         return result
@@ -1072,62 +1241,66 @@ class TraversalOrchestrator:
     # Login / Logout
     # ================================================================
 
-    def _do_login(self) -> None:
-        """Log in using the first available credential set.
+    def _ensure_authenticated(self) -> None:
+        """Fallback authentication — used ONLY when the plan has no form_gateway
+        Login step (or that step failed) and a phase transition to 'authenticated'
+        is encountered.
 
-        Guards against redundant login:
-          If we're already past the base/login URL (e.g., a form_gateway Login
-          step or the Advisor's prerequisite action already submitted creds),
-          navigating back to the login page would destroy the authenticated
-          session and trigger a chaotic re-login loop. We detect this by
-          comparing the current URL against the base URL.
+        Unlike the old _do_login(), this method:
+          - Does NOT assume the login page is at base_url
+          - Does NOT hard-navigate away from the current page first
+          - Gives the ActionEngine a dynamic goal to FIND the login page from
+            wherever we currently are (nav link, header button, etc.)
+          - Falls back to base_url only as a last resort
+
+        This makes authentication work for apps where login is at /auth/login,
+        /signin, or an OAuth provider — any app, any URL structure.
         """
         if not self.credentials:
-            self._log("  No credentials — skipping login.")
+            self._log("  [Auth] No credentials — cannot authenticate.")
             return
 
         creds = self.credentials[0]
+        self._log(f"  [Auth] Dynamic login fallback as: {creds.role} ({creds.username})")
 
-        # ---- Guard: skip if already authenticated ----
-        # If the current URL has moved past the base landing page, the session
-        # is likely already authenticated (a form_gateway Login step submitted
-        # the creds, or the Advisor ran a login prerequisite). Re-doing login
-        # would navigate back to the login page and potentially log us out.
-        current_url = get_current_url(self.browser_session)
-        base_normalized = self.base_url.rstrip("/")
-        current_normalized = current_url.rstrip("/") if current_url else ""
-        if (
-            current_normalized
-            and current_normalized != base_normalized
-            and current_url != "about:blank"
-        ):
+        goal = (
+            f"Find and navigate to the login or sign-in page. "
+            f"Look for links or buttons labeled 'Login', 'Sign In', 'Log In', "
+            f"'Get Started', or similar in the page header or navigation. "
+            f"Once on the login page, fill the authentication form with "
+            f"username '{creds.username}' and password '{creds.password}', "
+            f"then submit the form and confirm you are redirected away from the login page."
+        )
+        extra = (
+            f"Credentials: username='{creds.username}', password='{creds.password}'. "
+            f"The username field may have placeholder 'Username', 'Email', or 'User ID'. "
+            f"The password field may have placeholder 'Password' or 'Secret'."
+        )
+
+        result = self.action_engine.execute_goal(goal=goal, extra_context=extra, max_steps=6)
+
+        if result.success:
             self._log(
-                f"  Already past login page ({current_url}) — "
-                f"skipping redundant login."
+                f"  [Auth] Login successful → {result.current_title} ({result.current_url})"
             )
             return
 
-        self._log(f"  Logging in as: {creds.role} ({creds.username})")
-
-        # Navigate to base URL first (login page is often the landing page)
+        # ---- Last resort: try from base_url ----
+        self._log(
+            f"  [Auth] Could not find login from current page — "
+            f"trying base URL {self.base_url} as fallback."
+        )
         self.action_engine.navigate_to_url(self.base_url)
-
-        goal = (
-            f"Fill the login form with username '{creds.username}' "
-            f"and password '{creds.password}', then click the login/submit button."
-        )
-        extra = (
-            f"The username field might have placeholder 'Username' or similar. "
-            f"The password field might have placeholder 'Password'. "
-            f"Look for input fields of type 'text' and 'password'."
-        )
-
-        result = self.action_engine.execute_goal(goal=goal, extra_context=extra)
+        result = self.action_engine.execute_goal(goal=goal, extra_context=extra, max_steps=4)
 
         if result.success:
-            self._log(f"  Login successful → {result.current_title} ({result.current_url})")
+            self._log(
+                f"  [Auth] Fallback login successful → {result.current_url}"
+            )
         else:
-            self._log(f"  Login may have failed: {result.failure_reason}")
+            self._log(
+                f"  [Auth] Fallback login also failed: {result.failure_reason[:120]}"
+            )
 
     def _do_logout(self) -> None:
         """Log out by opening hamburger menu and clicking Logout."""

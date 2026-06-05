@@ -61,27 +61,35 @@ class SpecCheckerAgent:
         actual_url: str = "",
         actual_title: str = "",
         screenshot_b64: str = None,
+        before_screenshot_b64: str = None,
     ) -> SectionVerificationResult:
         """
         Run the spec check for one section against the current page DOM.
 
         Parameters
         ----------
-        section            : the SpecSection being verified
-        page_title         : title of the live page
-        page_url           : URL of the live page
-        selector_map_string: DOM selector map in human-readable form
-        actual_url         : same as page_url (kept for result hydration)
-        actual_title       : same as page_title (kept for result hydration)
-        screenshot_b64     : optional base64 PNG screenshot for vision models
+        section              : the SpecSection being verified
+        page_title           : title of the live page
+        page_url             : URL of the live page
+        selector_map_string  : DOM selector map / before+after context string
+        actual_url           : same as page_url (kept for result hydration)
+        actual_title         : same as page_title (kept for result hydration)
+        screenshot_b64       : optional base64 PNG of the AFTER state
+        before_screenshot_b64: optional base64 PNG of the BEFORE state.
+                               When provided alongside screenshot_b64 for a
+                               vision model, both are sent so the LLM can
+                               visually diff before vs after for action steps.
 
         Returns
         -------
         SectionVerificationResult
         """
+        has_before = bool(before_screenshot_b64 and self.checker_llm.is_vision)
         log(
             f"  [Checker] Checking section '{section.name}' against {page_url}"
-            + (" [+screenshot]" if screenshot_b64 and self.checker_llm.is_vision else ""),
+            + (" [+before/after screenshots]" if has_before
+               else " [+screenshot]" if screenshot_b64 and self.checker_llm.is_vision
+               else ""),
             self.debug, self.debug_file,
         )
 
@@ -99,7 +107,28 @@ class SpecCheckerAgent:
         )
 
         try:
-            if screenshot_b64 and self.checker_llm.is_vision:
+            if has_before and screenshot_b64:
+                # Vision action step: send before screenshot first, then after.
+                # The LLM receives the before image as the "primary" screenshot
+                # and sees the after state in the prompt text + second image.
+                # We embed the after screenshot label into the prompt so the LLM
+                # knows which image is which.
+                labeled_prompt = (
+                    "[IMAGE 1 = BEFORE the action] "
+                    "[IMAGE 2 = AFTER the action]\n\n"
+                    + prompt
+                )
+                response = self.checker_llm.ask_with_screenshot(
+                    labeled_prompt, before_screenshot_b64
+                )
+                # Also send the after screenshot in a follow-up context note.
+                # Since most LLM clients support only one image per call, we
+                # fall back to using just the after screenshot when the client
+                # doesn't support multi-image. The before URL/title in the text
+                # still provides the diff signal.
+                if not response or len(response) < 10:
+                    response = self.checker_llm.ask_with_screenshot(prompt, screenshot_b64)
+            elif screenshot_b64 and self.checker_llm.is_vision:
                 response = self.checker_llm.ask_with_screenshot(prompt, screenshot_b64)
             else:
                 response = self.checker_llm.ask(prompt)

@@ -195,6 +195,25 @@ class ActionEngine:
                     f"  [ActionEngine] Goal achieved at step {step_num}: {reasoning[:80]}",
                     self.debug, self.debug_file,
                 )
+                # IMPORTANT: The LLM sometimes violates Rule 3 by returning both
+                # actions AND goal_achieved=true in the same response. If we return
+                # immediately here, those actions are silently dropped — this was
+                # the root cause of Logout never firing (the click was in `actions`
+                # but the engine returned before executing it).
+                # Fix: execute any pending actions first, then return with the
+                # updated post-action URL/title so the caller sees the real state.
+                if actions:
+                    log(
+                        f"  [ActionEngine] Executing {len(actions)} pending action(s) "
+                        f"alongside goal_achieved (LLM Rule 3 violation — executing anyway).",
+                        self.debug, self.debug_file,
+                    )
+                    self._execute_actions(actions)
+                    wait_for_page(self.browser_session)
+                    self._wait_for_background_tabs()
+                    current_url = get_current_url(self.browser_session)
+                    current_title = get_current_title(self.browser_session)
+                    total_actions += len(actions)
                 return ActionResult(
                     success=True,
                     current_url=current_url,

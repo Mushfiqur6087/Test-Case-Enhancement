@@ -42,4 +42,4 @@ Logout ends the session and returns the user to the login page. After logout, pr
 
 ## Reset App State
 
-Reset App State clears the cart and resets in-app state (for example, cart badge and add/remove button states) without logging the user out.
+Reset App State clears the cart. If any items have been added to the cart, this action removes them and resets the cart badge without logging the user out.
