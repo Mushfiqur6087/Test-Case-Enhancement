@@ -13,7 +13,7 @@ STATIC DOM LIMITATIONS — do NOT report these as missing or mismatches:
 CHECK ONLY what is statically verifiable:
 - Required fields, buttons, labels present in the DOM or visible text
 - Page structure matches the spec (correct page reached)
-- Visible text (headings, prices, labels) consistent with the spec
+- Visible text (headings, labels, data values) consistent with the spec
 
 URL/TITLE SANITY: If the URL or title clearly contradicts the section being
 verified, set score < 40 and note the mismatch — the wrong page was reached.

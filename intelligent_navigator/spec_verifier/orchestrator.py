@@ -52,7 +52,6 @@ from intelligent_navigator.spec_verifier import report as report_module
 # ---- Constants ----
 _MAX_REPLAN_ATTEMPTS = 2   # max times to replan a single failed step
 _LOW_SCORE_THRESHOLD = 50  # scores below this trigger remediation + re-verification
-_ACTION_SECTION_KEYWORDS = ["logout", "reset", "sign out", "log out"]
 
 
 class TraversalOrchestrator:
@@ -116,6 +115,7 @@ class TraversalOrchestrator:
             debug=self.debug,
             debug_file=self.debug_file,
             selector_filter=self.selector_filter,
+            base_url=self.base_url,
         )
         self.page_identifier = PageIdentifierAgent(
             llm_client=self._base_llm,
@@ -259,6 +259,25 @@ class TraversalOrchestrator:
             # Progress summary
             self._log_progress(results, all_sections)
 
+            # ---- ADAPTIVE: Validate next step against current state ----
+            # After each step, check if the NEXT planned step is still valid.
+            # This catches stale prerequisites (e.g., required data missing,
+            # logged out before authenticated step, etc.)
+            current_result = results.get(section_name)
+            next_idx = step_idx + 1
+            while next_idx < len(plan.steps) and plan.steps[next_idx].target_section in results:
+                next_idx += 1  # skip already-verified steps to find the real next
+
+            if current_result and next_idx < len(plan.steps):
+                next_step = plan.steps[next_idx]
+                self._adapt_next_step(
+                    completed_section=section_name,
+                    completed_score=current_result.compliance_score,
+                    next_step=next_step,
+                    section_map=section_map,
+                    results=results,
+                )
+
         # 6. Handle any sections not in the plan
         for section in all_sections:
             if section.name not in results:
@@ -319,51 +338,25 @@ class TraversalOrchestrator:
         all_sections: List[SpecSection],
     ) -> Optional[SectionVerificationResult]:
         """
-        Execute a single traversal step:
-          1. Check if we're already on the target page (skip nav if so)
-          2. For form_gateway: use two-phase approach (verify form, then submit)
-          3. For normal pages: navigate → identify → verify → run interactions
+        Execute a single traversal step.
+
+        Execution flow depends on page_type, but the branching is minimal:
+          - form_gateway → two-phase (verify form, then submit)
+          - action       → single-shot with before/after state snapshots
+          - everything else (listing, detail, overlay, summary, confirmation)
+            → unified navigate → identify → verify → interact
         """
         section = section_map.get(step.target_section)
         if not section:
             return None
 
         # ---- CHECK: Are we already on the target page? ----
-        # Skip this optimization for overlay/action steps — their trigger
-        # element exists on the parent page, so PageIdentifier falsely matches.
-        # These steps ALWAYS need how_to_reach executed (e.g., click hamburger).
-        if step.page_type not in ("overlay", "action"):
-            current_url = get_current_url(self.browser_session)
-            current_title = get_current_title(self.browser_session)
-            page_content = self._get_combined_page_content()
-
-            unvisited = [
-                section_map[n] for n in section_map
-                if n not in results
-            ]
-
-            matched_section, confidence = self.page_identifier.identify(
-                current_url=current_url,
-                current_title=current_title,
-                page_content=page_content,
-                all_sections=unvisited,
-            )
-
-            if matched_section == step.target_section and confidence >= 70:
-                self._log(
-                    f"    Already on target page '{step.target_section}' "
-                    f"[{confidence}%] — skipping navigation."
-                )
-                result = self._verify_section(
-                    section=section,
-                    current_url=current_url,
-                    current_title=current_title,
-                    page_content=page_content,
-                )
-                # Self-correction: remediate if score is low
-                result = self._try_remediate_and_reverify(result, section, step)
-                # Run post-verification interactions even when we skipped nav
-                self._run_post_verify_interactions(step)
+        # Only for page types that have a dedicated URL/page (not overlays or
+        # in-page actions — their content exists on the parent page, so the
+        # identifier would falsely match the parent).
+        if self._should_check_already_here(step.page_type):
+            result = self._check_already_on_target(step, section, section_map, results)
+            if result is not None:
                 return result
 
         # ---- FORM GATEWAY: Two-phase approach ----
@@ -375,15 +368,11 @@ class TraversalOrchestrator:
                 all_sections=all_sections,
             )
 
-        # ---- NORMAL STEP: Navigate → Identify → Verify → Interact ----
+        # ---- Build goal with type-aware stop conditions ----
         goal = self._build_goal(step, section_map, results)
         extra_context = self._build_extra_context(step)
 
-        # ---- ACTION STEPS: Capture before/after state for transition verification ----
-        # Action-type specs describe STATE TRANSITIONS ("clears the cart",
-        # "ends the session"). The checker can't verify a transition from a
-        # single snapshot — it needs the before AND after state to reason
-        # about what changed. This is generic: works for any app, any action.
+        # ---- ACTION: Single-shot with before/after snapshots ----
         if step.page_type == "action":
             return self._execute_action_step_with_snapshots(
                 step=step,
@@ -392,7 +381,9 @@ class TraversalOrchestrator:
                 extra_context=extra_context,
             )
 
-        pre_nav_url = get_current_url(self.browser_session)
+        # ---- UNIFIED: Navigate → Identify → Verify → Interact ----
+        # Works for listing, detail, overlay, summary, confirmation.
+        # The LLM handles overlay/navigation differences via _build_goal prompts.
         action_result = self.action_engine.execute_goal(
             goal=goal,
             extra_context=extra_context,
@@ -404,26 +395,6 @@ class TraversalOrchestrator:
             )
             return None
 
-        # Sanity check: if the URL didn't change, the LLM may have declared
-        # goal_achieved prematurely (saw filled form fields, assumed the next
-        # click would navigate, but didn't wait for the actual page transition).
-        # Retry once so the ActionEngine can observe the true page state.
-        # Skip for overlay types where URL intentionally stays the same.
-        post_nav_url = get_current_url(self.browser_session)
-        if post_nav_url == pre_nav_url and step.page_type not in ("overlay",):
-            self._log(
-                f"    [Nav] URL unchanged after action — retrying navigation"
-            )
-            retry_result = self.action_engine.execute_goal(
-                goal=goal,
-                extra_context=extra_context,
-            )
-            if not retry_result.success:
-                self._log(
-                    f"    Navigation retry failed: {retry_result.failure_reason[:120]}"
-                )
-                return None
-
         # Identify the page we landed on and verify it
         result = self._identify_and_verify(
             step=step,
@@ -431,16 +402,68 @@ class TraversalOrchestrator:
             results=results,
         )
 
-        # ---- POST-VERIFY: Execute interactions_needed as side-effect setup ----
-        # This runs AFTER verification so we can't overshoot the target page,
-        # but BEFORE the next step so prerequisites (e.g., "items in cart")
-        # are satisfied. The planner already specified what to do on each page.
         if result:
-            # Self-correction: remediate if score is low
             result = self._try_remediate_and_reverify(result, section, step)
             self._run_post_verify_interactions(step)
 
         return result
+
+    @staticmethod
+    def _should_check_already_here(page_type: str) -> bool:
+        """Return True if this page type supports the 'already here' optimization.
+
+        Excluded types:
+          - overlay / action — content lives on the parent page; the identifier
+            would falsely match the parent before the trigger is activated.
+          - form_gateway — these pages have a two-phase lifecycle (Phase A:
+            navigate + verify the form, Phase B: fill + submit). Short-circuiting
+            via _check_already_on_target would execute Phase A (verify) but
+            completely skip Phase B (submit), leaving forms unsubmitted.
+            This was the root cause of login forms being verified but never
+            submitted, stranding the session on the login page.
+        """
+        return page_type not in ("overlay", "action", "form_gateway")
+
+    def _check_already_on_target(
+        self,
+        step: TraversalStep,
+        section: SpecSection,
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+    ) -> Optional[SectionVerificationResult]:
+        """Check if we're already on the target page and verify if so."""
+        current_url = get_current_url(self.browser_session)
+        current_title = get_current_title(self.browser_session)
+        page_content = self._get_combined_page_content()
+
+        unvisited = [
+            section_map[n] for n in section_map
+            if n not in results
+        ]
+
+        matched_section, confidence = self.page_identifier.identify(
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+            all_sections=unvisited,
+        )
+
+        if matched_section == step.target_section and confidence >= 70:
+            self._log(
+                f"    Already on target page '{step.target_section}' "
+                f"[{confidence}%] — skipping navigation."
+            )
+            result = self._verify_section(
+                section=section,
+                current_url=current_url,
+                current_title=current_title,
+                page_content=page_content,
+            )
+            result = self._try_remediate_and_reverify(result, section, step)
+            self._run_post_verify_interactions(step)
+            return result
+
+        return None  # not on target — proceed with normal execution
 
     def _execute_form_gateway_step(
         self,
@@ -454,7 +477,7 @@ class TraversalOrchestrator:
           Phase A: Navigate to the form page, identify + verify it (before submit)
           Phase B: Fill and submit the form to proceed to the next step
 
-        This ensures form pages (Login, Checkout Info) get verified BEFORE
+        This ensures form pages (Login, Registration, Data Entry) get verified BEFORE
         the form submission navigates us away.
         """
         section = section_map.get(step.target_section)
@@ -552,10 +575,14 @@ class TraversalOrchestrator:
             f"    [Action] Capturing before-state: {before_title} ({before_url})"
         )
 
-        # 2. Execute the action
+        # 2. Execute the action — single-shot, no loop.
+        # Action steps complete in 1 click. The multi-step loop is
+        # counterproductive: Step 1 succeeds (e.g., Logout navigates to login),
+        # then Step 2 second-guesses and reverses the work.
         action_result = self.action_engine.execute_goal(
             goal=goal,
             extra_context=extra_context,
+            max_steps=1,
         )
 
         if not action_result.success:
@@ -576,8 +603,8 @@ class TraversalOrchestrator:
 
         # 4. Build combined before/after context for the checker
         # The checker can now reason about transitions:
-        #   "cart badge 2 → 0" = cart cleared ✓
-        #   "inventory.html → login page" = session ended ✓
+        #   "badge count 2 → 0" = state cleared ✓
+        #   "dashboard.html → login page" = session ended ✓
         combined_content = (
             f"=== STATE BEFORE ACTION ===\n"
             f"URL: {before_url}\n"
@@ -683,7 +710,7 @@ class TraversalOrchestrator:
 
         Design rationale for using ``result.missing`` (not ``result.notes``):
           - ``missing`` is a List[str] — each item is a concrete, checkable thing
-            e.g. "All Items link not found", "Logout link not visible"
+            e.g. "Navigation link not found", "Submit button not visible"
           - Feeding these verbatim gives the LLM maximum context to decide
             HOW to reveal them (open a menu, scroll, expand an accordion, etc.)
           - ``notes`` is a prose summary — less precise for action planning
@@ -761,9 +788,9 @@ class TraversalOrchestrator:
           - The planner specified what to do on each page — we just execute it
 
         Examples of what this executes:
-          - Product Inventory / Detail: "Click 'Add to cart' for one product"
-            → satisfies "items in cart" prerequisite for Shopping Cart step
-          - Navigation Menu (overlay): "Click 'All Items' or close the X button"
+          - Listing page: "Select an item" or "Create a record"
+            → satisfies data prerequisite for a downstream detail/summary step
+          - Overlay (side menu): "Close the menu" or "Click a navigation link"
             → cleans up overlay state before next step
 
         Skipped for form_gateway steps — those use the Phase B submission instead.
@@ -791,6 +818,78 @@ class TraversalOrchestrator:
             self._log(
                 f"    [PostVerify] Failed (non-fatal): "
                 f"{interact_result.failure_reason[:100]}"
+            )
+
+    def _adapt_next_step(
+        self,
+        completed_section: str,
+        completed_score: int,
+        next_step: 'TraversalStep',
+        section_map: Dict[str, SpecSection],
+        results: Dict[str, SectionVerificationResult],
+    ) -> None:
+        """
+        Lightweight adaptive check between steps.
+
+        Asks the planner's step advisor whether the next planned step is
+        still valid given the current page state. If not, adjusts the step's
+        how_to_reach and executes any prerequisite actions.
+
+        This is NOT full replanning — it's a quick validation that runs
+        between every pair of steps to catch:
+          - Stale prerequisites (required data missing but next step needs it)
+          - Wrong page state (logged out but next step needs auth)
+          - Navigation adjustments (current page changed unexpectedly)
+        """
+        current_url = get_current_url(self.browser_session)
+        current_title = get_current_title(self.browser_session)
+        page_content = self._get_combined_page_content()
+
+        remaining = [
+            section_map[n] for n in section_map
+            if n not in results
+        ]
+
+        advice = self.planner.advise_next_step(
+            completed_section=completed_section,
+            completed_score=completed_score,
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+            next_step=next_step,
+            remaining_sections=remaining,
+        )
+
+        if not advice:
+            return  # LLM call failed — proceed with original plan
+
+        if advice.get("next_step_valid", True):
+            self._log(
+                f"    [Advisor] Next step '{next_step.target_section}' "
+                f"is valid — proceeding as planned."
+            )
+            return
+
+        # Step is invalid — apply adjustments
+        reasoning = advice.get("reasoning", "")
+        self._log(
+            f"    [Advisor] Next step '{next_step.target_section}' needs adjustment: "
+            f"{reasoning[:120]}"
+        )
+
+        # Update how_to_reach if advisor suggests a new approach
+        adjusted = advice.get("adjusted_how_to_reach", "")
+        if adjusted:
+            next_step.how_to_reach = adjusted
+            self._log(f"    [Advisor] Adjusted how_to_reach: {adjusted[:120]}")
+
+        # Execute prerequisite actions if needed
+        prereq = advice.get("prerequisite_actions", "")
+        if prereq:
+            self._log(f"    [Advisor] Running prerequisite: {prereq[:120]}")
+            self.action_engine.execute_goal(
+                goal=prereq,
+                max_steps=3,  # tight budget for prereq setup
             )
 
     def _replan_and_retry(
@@ -851,7 +950,7 @@ class TraversalOrchestrator:
             if result:
                 return result
 
-            # Go back to base (or inventory) to try again from a known state
+            # Go back to base URL to try again from a known state
             self._log("    [Replan] Returning to base URL for next attempt...")
             self.action_engine.navigate_to_url(self.base_url)
 
@@ -872,7 +971,7 @@ class TraversalOrchestrator:
 
         CRITICAL: The goal must ONLY be about reaching the target page or
         performing the target action. It must NOT include interactions_needed
-        (like clicking Checkout, filling forms, or clicking Back). Those cause
+        (like submitting forms, clicking navigation links, or clicking Back). Those cause
         the ActionEngine to overshoot past the target page before we can verify it.
 
         Stop-condition logic is TYPE-AWARE because different page types have
@@ -974,12 +1073,40 @@ class TraversalOrchestrator:
     # ================================================================
 
     def _do_login(self) -> None:
-        """Log in using the first available credential set."""
+        """Log in using the first available credential set.
+
+        Guards against redundant login:
+          If we're already past the base/login URL (e.g., a form_gateway Login
+          step or the Advisor's prerequisite action already submitted creds),
+          navigating back to the login page would destroy the authenticated
+          session and trigger a chaotic re-login loop. We detect this by
+          comparing the current URL against the base URL.
+        """
         if not self.credentials:
             self._log("  No credentials — skipping login.")
             return
 
         creds = self.credentials[0]
+
+        # ---- Guard: skip if already authenticated ----
+        # If the current URL has moved past the base landing page, the session
+        # is likely already authenticated (a form_gateway Login step submitted
+        # the creds, or the Advisor ran a login prerequisite). Re-doing login
+        # would navigate back to the login page and potentially log us out.
+        current_url = get_current_url(self.browser_session)
+        base_normalized = self.base_url.rstrip("/")
+        current_normalized = current_url.rstrip("/") if current_url else ""
+        if (
+            current_normalized
+            and current_normalized != base_normalized
+            and current_url != "about:blank"
+        ):
+            self._log(
+                f"  Already past login page ({current_url}) — "
+                f"skipping redundant login."
+            )
+            return
+
         self._log(f"  Logging in as: {creds.role} ({creds.username})")
 
         # Navigate to base URL first (login page is often the landing page)

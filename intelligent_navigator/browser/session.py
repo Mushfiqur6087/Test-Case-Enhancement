@@ -1,5 +1,6 @@
 """Playwright browser session manager."""
 
+import base64
 from typing import Optional, List, Dict, Any
 from playwright.sync_api import Page, BrowserContext, sync_playwright, Browser
 
@@ -33,7 +34,65 @@ class BrowserSession:
         if self._browser is None:
             self._initialize_session()
         self._context = self._browser.new_context()
+        # Listen for new tabs/popups opened by the page (target="_blank", window.open)
+        self._context.on("page", self._on_new_page_opened)
         return self._context
+
+    def _on_new_page_opened(self, page: Page) -> None:
+        """Called by Playwright whenever a new tab/popup is opened in the context.
+
+        Tracks the new tab so the agent can see it and decide what to do.
+        Does NOT auto-close — the LLM decides whether to keep or close it.
+
+        Note: Playwright fires this event when the page object is *created* —
+        i.e. before it has navigated anywhere. The URL is therefore 'about:blank'
+        at this point. We wait a short time for the tab to navigate so the
+        logged URL is meaningful.
+        """
+        if page not in self._tabs:
+            self._tabs.append(page)
+            page.once("close", lambda _: self._on_close(page))
+            self._setup_alert_handlers(page)
+
+        # Wait briefly for the new tab to navigate past about:blank so the
+        # logged URL reflects the real destination (not the creation URL).
+        resolved_url = self._resolve_tab_url(page)
+
+        # Suppress the misleading startup message: the very first page opened
+        # in a fresh context is always about:blank (it's our working tab, not
+        # a genuine popup). Only log when it's a real secondary tab.
+        if len(self._tabs) > 1 or resolved_url not in ("about:blank", ""):
+            print(
+                f"  [TabGuard] New tab detected: {resolved_url} "
+                f"(total tabs: {len(self._tabs)})"
+            )
+
+    def _resolve_tab_url(self, page: Page, timeout_ms: int = 3000) -> str:
+        """Return the page's current URL, waiting briefly for it to navigate
+        past 'about:blank' (which is the initial URL for every new page object
+        before Playwright loads any content into it).
+
+        Parameters
+        ----------
+        page       : the Playwright Page to inspect
+        timeout_ms : maximum time (ms) to wait for a real URL
+        """
+        try:
+            # Fast path: already at a real URL
+            url = page.url
+            if url and url not in ("about:blank", ""):
+                return url
+
+            # Slow path: wait for the page to navigate away from about:blank
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=timeout_ms)
+            except Exception:
+                pass
+
+            url = page.url
+            return url if url else "about:blank"
+        except Exception:
+            return "about:blank"
 
     def get_session(self) -> dict:
         return {
@@ -57,19 +116,36 @@ class BrowserSession:
         return self.create_new_page()
 
     def create_new_page(self) -> Page:
+        """Create a new browser page and make it the current tab.
+
+        Note: calling self._context.new_page() fires the context-level 'page'
+        event synchronously, which triggers _on_new_page_opened(). That handler
+        already appends the page to self._tabs and registers close/alert handlers.
+        We must NOT duplicate those calls here — doing so creates ghost duplicate
+        entries in self._tabs, causing both 'both ACTIVE' display bugs and empty
+        selector maps after tab operations.
+        """
         if self._context is None:
             self._create_context()
         page = self._context.new_page()
-        self._tabs.append(page)
+        # _on_new_page_opened has already appended page to _tabs and registered
+        # handlers. Only set the active page pointer here.
         self._current_page = page
-        page.once("close", lambda _: self._on_close(page))
-        self._setup_alert_handlers(page)
+        # Safety guard: if somehow _on_new_page_opened didn't run (edge case),
+        # ensure the page is tracked and handlers are wired.
+        if page not in self._tabs:
+            self._tabs.append(page)
+            page.once("close", lambda _: self._on_close(page))
+            self._setup_alert_handlers(page)
         return page
 
     def _on_close(self, page: Page):
+        """Called when a tracked page is closed. Remove it from _tabs and
+        update _current_page if needed. Uses identity check (is) to avoid
+        false matches from __eq__ on Playwright Page objects."""
         if page in self._tabs:
             self._tabs.remove(page)
-        if self._current_page == page:
+        if self._current_page is page:
             self._current_page = self._tabs[0] if self._tabs else None
 
     def navigate_to(self, url: str) -> None:
@@ -100,13 +176,24 @@ class BrowserSession:
             self._selector_map = None
 
     def get_tabs_info(self) -> List[Dict[str, Any]]:
+        """Return metadata for every tracked tab.
+
+        For tabs whose URL is still 'about:blank' (page created but not yet
+        navigated), we wait briefly so callers get the real destination URL
+        rather than the creation-time placeholder.
+        """
         infos = []
         for idx, page in enumerate(self._tabs):
             try:
+                url = self._resolve_tab_url(page)
+                try:
+                    title = page.title()
+                except Exception:
+                    title = "Unknown"
                 infos.append({
                     "page_id": idx,
-                    "url": page.url,
-                    "title": page.title(),
+                    "url": url,
+                    "title": title,
                     "is_current": page is self._current_page
                 })
             except Exception:
@@ -153,6 +240,76 @@ class BrowserSession:
             self._selector_map = None
             return True
         return False
+
+    # ---- Multi-tab context for LLM prompts ----
+
+    def get_tab_context_string(self) -> str:
+        """Build a compact tab summary for injection into LLM prompts.
+
+        Returns an empty string when there is only one tab (no noise for
+        the normal case). When multiple tabs are open, returns a block like:
+
+            ## Browser Tabs (2 open)
+            Tab 0 (ACTIVE): Swag Labs — https://www.saucedemo.com/inventory.html
+            Tab 1:          Facebook — https://www.facebook.com/saucelabs
+
+        URLs are resolved via _resolve_tab_url() so background tabs that are
+        still loading past about:blank show their real destination URL instead
+        of the transient creation-time placeholder.
+        """
+        if len(self._tabs) <= 1:
+            return ""
+
+        lines = [f"## Browser Tabs ({len(self._tabs)} open)"]
+        for idx, page in enumerate(self._tabs):
+            # Use resolved URL so we never send 'about:blank' for a tab
+            # that has already navigated to a real page.
+            url = self._resolve_tab_url(page)
+            try:
+                title = page.title()
+            except Exception:
+                title = "Unknown"
+            marker = " (ACTIVE)" if page is self._current_page else ""
+            lines.append(f"Tab {idx}{marker}: {title} — {url}")
+
+        lines.append("")
+        lines.append(
+            "IMPORTANT: If any tab is NOT relevant to your current goal "
+            "(e.g., external social media page), close it with close_tab "
+            "and switch back to your working tab with switch_to_tab before "
+            "continuing."
+        )
+        return "\n".join(lines)
+
+    def capture_all_tabs_screenshots(self) -> List[Dict[str, Any]]:
+        """Capture a screenshot from every open tab.
+
+        Returns a list of dicts:
+          [{"tab_index": 0, "url": "...", "title": "...", "screenshot_b64": "...", "is_active": True}, ...]
+
+        Tabs that fail to screenshot are included with screenshot_b64=None.
+        """
+        results = []
+        for idx, page in enumerate(self._tabs):
+            entry: Dict[str, Any] = {
+                "tab_index": idx,
+                "is_active": page is self._current_page,
+            }
+            try:
+                entry["url"] = page.url
+                entry["title"] = page.title()
+            except Exception:
+                entry["url"] = "about:blank"
+                entry["title"] = "Unknown"
+
+            try:
+                png_bytes: bytes = page.screenshot(full_page=True)
+                entry["screenshot_b64"] = base64.b64encode(png_bytes).decode("utf-8")
+            except Exception:
+                entry["screenshot_b64"] = None
+
+            results.append(entry)
+        return results
 
     def get_element_tree(self, refresh: bool = True) -> Optional[DOMElementNode]:
         """Returns the root DOMElementNode."""

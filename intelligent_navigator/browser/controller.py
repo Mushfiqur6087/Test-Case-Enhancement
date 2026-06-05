@@ -27,6 +27,8 @@ class BrowserController:
             "clear_input":      self.clear_input,
             "wait_for_element": self.wait_for_element,
             "navigate_to":      self.navigate_to,
+            "close_tab":        self.close_tab,
+            "switch_to_tab":    self.switch_to_tab,
         }
 
         if command not in command_map:
@@ -344,6 +346,28 @@ class BrowserController:
             self.browser_context.navigate_to(url)
             return True
         except Exception:
+            return False
+
+    def close_tab(self, page_id: int) -> bool:
+        """Close a browser tab by its index."""
+        try:
+            result = self.browser_context.close_tab(page_id)
+            if result:
+                print(f"  [Controller] Closed tab {page_id}")
+            return result
+        except Exception as e:
+            print(f"  [Controller] close_tab({page_id}) error: {e}")
+            return False
+
+    def switch_to_tab(self, page_id: int) -> bool:
+        """Switch the active tab to the one at the given index."""
+        try:
+            result = self.browser_context.switch_to_tab(page_id)
+            if result:
+                print(f"  [Controller] Switched to tab {page_id}")
+            return result
+        except Exception as e:
+            print(f"  [Controller] switch_to_tab({page_id}) error: {e}")
             return False
 
     def close(self) -> None:

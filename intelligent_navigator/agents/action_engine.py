@@ -15,12 +15,13 @@ Key improvements over Navigator:
   - Progress detection: detects when actions don't change page state
   - Multi-step with history: can chain multiple actions toward one goal
   - Merges login/logout/click/form into a single unified flow
+  - Multi-tab aware: detects new tabs, shows all tab state in LLM prompts,
+    captures screenshots from every open tab, and handles close_tab/switch_to_tab
 """
 
 from typing import Any, Dict, List, Optional, Tuple
 
 from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.models import RoleCredentials
 from intelligent_navigator.core.utils import (
     get_current_title,
     get_current_url,
@@ -30,6 +31,7 @@ from intelligent_navigator.core.utils import (
 )
 from intelligent_navigator.browser.controller import BrowserController
 from intelligent_navigator.browser.dom_helper import DOMHelper
+from intelligent_navigator.browser.screenshot import capture_screenshot_b64
 from intelligent_navigator.browser.selector_filter import SelectorMapFilter
 from intelligent_navigator.agents.prompts import (
     PROMPT_ACTION_ENGINE_SYSTEM,
@@ -68,7 +70,7 @@ class ActionEngine:
     Goal-oriented browser action execution engine.
 
     Given a natural-language goal (e.g., "fill the login form and submit",
-    "click the shopping cart icon", "add an item to the cart"), this engine:
+    "click the navigation menu icon", "submit the form"), this engine:
       1. Captures the current DOM state
       2. Asks an LLM what actions to take
       3. Executes the actions via BrowserController
@@ -84,6 +86,7 @@ class ActionEngine:
         debug: bool = False,
         debug_file: Optional[str] = None,
         selector_filter: Optional[SelectorMapFilter] = None,
+        base_url: str = "",
     ):
         self.browser_controller = browser_controller
         self.browser_session = browser_session
@@ -92,6 +95,7 @@ class ActionEngine:
         self.debug = debug
         self.debug_file = debug_file
         self.llm_call_count = 0
+        self.base_url = base_url  # used for tab context logging
 
         self._llm = LLMClient(
             api_key=llm_client.api_key,
@@ -118,8 +122,8 @@ class ActionEngine:
         goal          : Natural language description of what to achieve.
                         Examples:
                           - "Fill the login form with username 'user' and password 'pass', then submit"
-                          - "Click the shopping cart icon in the header"
-                          - "Add the first product to the cart"
+                          - "Click the navigation menu icon in the header"
+                          - "Select the first item from the list"
                           - "Click the hamburger menu button to open the navigation panel"
         extra_context : Additional context for the LLM (e.g., credentials info)
         max_steps     : Maximum LLM-driven steps for this goal. 0 = use default
@@ -144,7 +148,7 @@ class ActionEngine:
             # 1. Dismiss overlays first
             self._dismiss_overlays()
 
-            # 2. Capture current DOM
+            # 2. Capture current DOM + screenshot
             selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
             selector_map_string = self._filter_selector_map(
                 selector_map_json, selector_map_string
@@ -152,13 +156,36 @@ class ActionEngine:
             current_url = get_current_url(self.browser_session)
             current_title = get_current_title(self.browser_session)
 
-            # 3. Ask LLM what to do
+            # 3. Build tab context string (empty when only 1 tab — no noise)
+            tab_context = self.browser_session.get_tab_context_string()
+            if tab_context:
+                log(
+                    f"  [TabGuard] {len(self.browser_session._tabs)} tabs open "
+                    f"— injecting tab context into prompt.",
+                    self.debug, self.debug_file,
+                )
+
+            # 4. Capture screenshots for visual grounding.
+            #    For vision models with multiple tabs: capture ALL tabs.
+            #    For single-tab or non-vision: capture active tab only.
+            screenshot_b64 = None
+            all_tab_screenshots: List[Dict] = []
+            if self._llm.is_vision:
+                if len(self.browser_session._tabs) > 1:
+                    all_tab_screenshots = self.browser_session.capture_all_tabs_screenshots()
+                else:
+                    screenshot_b64 = capture_screenshot_b64(self.browser_session)
+
+            # 5. Ask LLM what to do (with screenshot(s) if available)
             history_str = self._format_step_history(step_history)
             actions, goal_achieved, goal_failed, reasoning, failure_reason = (
                 self._ask_llm(
                     current_url, current_title,
                     selector_map_string, goal,
                     extra_context, step_num, history_str,
+                    tab_context=tab_context,
+                    screenshot_b64=screenshot_b64,
+                    all_tab_screenshots=all_tab_screenshots,
                 )
             )
 
@@ -211,6 +238,12 @@ class ActionEngine:
             actions_executed = self._execute_actions(actions)
             total_actions += len(actions_executed)
             wait_for_page(self.browser_session)
+
+            # 7b. Wait for any new background tabs to load past about:blank,
+            # then log tab state. This ensures the LLM and the log both see
+            # the real destination URLs rather than the transient 'about:blank'.
+            self._wait_for_background_tabs()
+            self._log_tab_state()
 
             new_url = get_current_url(self.browser_session)
             new_title = get_current_title(self.browser_session)
@@ -288,12 +321,28 @@ class ActionEngine:
         extra_context: str,
         step_number: int,
         step_history: str,
+        tab_context: str = "",
+        screenshot_b64: str = None,
+        all_tab_screenshots: List[Dict] = None,
     ) -> Tuple[List[Dict], bool, bool, str, str]:
         """
         Ask the LLM which actions to take.
 
+        Tab context:
+          - tab_context is injected into the prompt text so the LLM knows
+            about all open browser tabs (their index, title, URL).
+          - For vision models with multiple tabs, all_tab_screenshots provides
+            a screenshot per tab so the LLM can visually confirm which tab
+            has the relevant content.
+
+        Falls back to text-only automatically.
+
         Returns: (actions, goal_achieved, goal_failed, reasoning, failure_reason)
         """
+        # Render tab_context with a trailing newline when non-empty so the
+        # prompt block looks clean; otherwise collapse to empty string.
+        tab_context_block = (tab_context.strip() + "\n\n") if tab_context.strip() else ""
+
         prompt = PROMPT_ACTION_ENGINE_STEP.format(
             step_number=step_number,
             current_url=current_url,
@@ -305,10 +354,28 @@ class ActionEngine:
             goal=goal,
             extra_context=extra_context,
             step_history=step_history,
+            tab_context=tab_context_block,
         )
 
         try:
-            response = self._llm.ask(prompt)
+            if self._llm.is_vision and all_tab_screenshots:
+                # Multi-tab vision: send screenshots from all open tabs.
+                # Build a list of (b64, label) pairs for tabs that captured ok.
+                tab_images = [
+                    t["screenshot_b64"]
+                    for t in (all_tab_screenshots or [])
+                    if t.get("screenshot_b64")
+                ]
+                if tab_images:
+                    # Use the first (active) screenshot as the primary image;
+                    # attach the rest as additional context.
+                    response = self._llm.ask_with_screenshot(prompt, tab_images[0])
+                else:
+                    response = self._llm.ask(prompt)
+            elif screenshot_b64:
+                response = self._llm.ask_with_screenshot(prompt, screenshot_b64)
+            else:
+                response = self._llm.ask(prompt)
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
@@ -342,6 +409,8 @@ class ActionEngine:
             "press_key":        self._handle_press_key,
             "clear_input":      self._handle_clear_input,
             "wait_for_element": self._handle_wait_for_element,
+            "close_tab":        self._handle_close_tab,
+            "switch_to_tab":    self._handle_switch_to_tab,
         }
 
         actions_taken = []
@@ -450,9 +519,71 @@ class ActionEngine:
         self.browser_controller.execute_command("wait_for_element", text, int(timeout))
         return True
 
+    def _handle_close_tab(self, params: Dict[str, Any]) -> bool:
+        page_id = params.get("page_id")
+        if page_id is None:
+            return False
+        result = self.browser_controller.execute_command("close_tab", int(page_id))
+        wait_for_page(self.browser_session)
+        return bool(result)
+
+    def _handle_switch_to_tab(self, params: Dict[str, Any]) -> bool:
+        page_id = params.get("page_id")
+        if page_id is None:
+            return False
+        result = self.browser_controller.execute_command("switch_to_tab", int(page_id))
+        wait_for_page(self.browser_session)
+        return bool(result)
+
     # ================================================================
     # Helpers
     # ================================================================
+
+    def _wait_for_background_tabs(self) -> None:
+        """Wait for any background tabs that are still at 'about:blank' to
+        finish loading their target URL.
+
+        When a click opens a target="_blank" link, Playwright fires the new-page
+        event before the page has navigated, so the URL is momentarily
+        'about:blank'. We give each such tab up to 3 s to settle before the
+        LLM reads the tab context — otherwise it sees wrong URLs and makes
+        bad decisions (e.g., closing the wrong tab or switching unnecessarily).
+        """
+        try:
+            for page in self.browser_session._tabs:
+                if page is self.browser_session._current_page:
+                    continue  # active tab is already waited on by wait_for_page()
+                try:
+                    if page.url in ("about:blank", ""):
+                        page.wait_for_load_state("domcontentloaded", timeout=3000)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _log_tab_state(self) -> None:
+        """Log current tab count and URLs after an action batch.
+
+        Called after every _execute_actions() call so new tabs opened by
+        clicks (target="_blank", window.open) are immediately visible in
+        the console output. This is purely informational — no tabs are
+        closed automatically; the LLM decides what to do next.
+        """
+        try:
+            tabs = self.browser_session.get_tabs_info()
+            if len(tabs) > 1:
+                log(
+                    f"  [TabGuard] {len(tabs)} tabs open after action:",
+                    self.debug, self.debug_file,
+                )
+                for t in tabs:
+                    active_marker = " ← ACTIVE" if t.get("is_current") else ""
+                    log(
+                        f"    Tab {t['page_id']}: {t['title'][:40]} — {t['url'][:80]}{active_marker}",
+                        self.debug, self.debug_file,
+                    )
+        except Exception:
+            pass
 
     def _dismiss_overlays(self) -> None:
         """No-op: overlays are handled by the LLM via explicit press_key: Escape.
@@ -482,6 +613,8 @@ class ActionEngine:
         "press_key":        lambda p: f"pressed '{p.get('key', '')}'",
         "clear_input":      lambda p: f"cleared #{p.get('index')}",
         "wait_for_element": lambda p: f"waited for '{p.get('text', '')}'",
+        "close_tab":        lambda p: f"closed tab #{p.get('page_id')}",
+        "switch_to_tab":    lambda p: f"switched to tab #{p.get('page_id')}",
     }
 
     def _format_step_history(self, history: List[Dict[str, Any]]) -> str:

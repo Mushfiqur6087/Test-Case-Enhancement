@@ -24,6 +24,7 @@ from intelligent_navigator.agents.prompts import (
     PROMPT_TRAVERSAL_PLANNER_SYSTEM,
     PROMPT_TRAVERSAL_PLANNER_USER,
     PROMPT_REPLAN_STEP,
+    PROMPT_STEP_ADVISOR,
 )
 
 
@@ -153,6 +154,60 @@ class TraversalPlannerAgent:
             return parse_llm_json(response)
         except Exception as e:
             log(f"  [Planner] Replan error: {e}", self.debug, self.debug_file)
+            self.llm_call_count += 1
+            return None
+
+    def advise_next_step(
+        self,
+        completed_section: str,
+        completed_score: int,
+        current_url: str,
+        current_title: str,
+        page_content: str,
+        next_step: 'TraversalStep',
+        remaining_sections: List[SpecSection],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Lightweight adaptive check between steps.
+
+        After each step completes, ask the LLM whether the next planned step
+        is still valid given the current page state. If not, get adjusted
+        navigation instructions and prerequisite actions.
+
+        This is NOT full replanning — it's a quick validation that catches
+        stale prerequisites (e.g., required data is missing but next step assumes it).
+
+        Returns a dict with {next_step_valid, adjusted_how_to_reach,
+        prerequisite_actions, reasoning} or None if the LLM call fails.
+        """
+        remaining_text = "\n".join(
+            f"- **{s.name}**: {s.raw_text[:150]}"
+            for s in remaining_sections
+        )
+
+        prompt = PROMPT_STEP_ADVISOR.format(
+            completed_section=completed_section,
+            completed_score=completed_score,
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content[:4000],
+            next_section=next_step.target_section,
+            next_page_type=next_step.page_type,
+            next_how_to_reach=next_step.how_to_reach,
+            next_prerequisites=", ".join(next_step.prerequisites) or "none",
+            next_interactions=next_step.interactions_needed or "none",
+            remaining_sections=remaining_text,
+        )
+
+        try:
+            response = self._replan_llm.ask(prompt)
+            self.llm_call_count += 1
+            return parse_llm_json(response)
+        except Exception as e:
+            log(
+                f"  [Planner] Step advisor error: {e}",
+                self.debug, self.debug_file,
+            )
             self.llm_call_count += 1
             return None
 

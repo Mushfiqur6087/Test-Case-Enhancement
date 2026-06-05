@@ -19,29 +19,27 @@ You are a web application traversal planner. Given a functional specification,
 produce an ordered plan to visit every described page/feature.
 
 # Page Types
-- **form_gateway**: Form page that must be filled and submitted to proceed (e.g., login, checkout).
+- **form_gateway**: Form page that must be filled and submitted to proceed (e.g., login, registration, data entry).
   `how_to_reach` = navigation ONLY — do NOT include form filling or submission there.
   Put form actions in `interactions_needed`; the system handles submission separately.
-- **listing**: List of items (e.g., inventory, cart). Navigate by clicking items or buttons.
-- **detail**: Single-item detail page. Reached by clicking from a listing.
-- **overlay**: UI element revealed by a toggle (e.g., hamburger menu). Verified on top of existing page.
-- **action**: In-page action with no full navigation (e.g., logout, reset). Click a link/button.
-- **summary**: Read-only summary page (e.g., checkout overview).
-- **confirmation**: Terminal page confirming an action (e.g., order success).
+- **listing**: Page displaying a collection of items or records (e.g., accounts list, user directory, dashboard).
+- **detail**: Single-item view reached by clicking from a listing (e.g., account details, user profile).
+- **overlay**: UI element revealed by a toggle (e.g., side navigation menu, modal dialog). Verified on top of existing page.
+- **action**: In-page action with no full navigation (e.g., logout, delete, reset state). Click a link/button.
+- **summary**: Read-only summary or review page (e.g., transaction summary, order review).
+- **confirmation**: Terminal page confirming a completed action (e.g., success message, submission receipt).
 
 # Rules
-1. Order steps so dependencies are satisfied (e.g., "add to cart" before "cart")
-2. Put destructive actions (logout, reset) LAST — after ALL other sections are visited
-   and the full checkout flow is complete. This is NON-NEGOTIABLE.
+1. Order steps so dependencies are satisfied (e.g., create data before viewing it)
+2. Put destructive actions (logout, reset, delete) LAST — after ALL other sections are visited
+   and all multi-step flows are complete. This is NON-NEGOTIABLE.
    Your job is to TRAVERSE pages for verification, not to design test scenarios.
-   Do NOT reorder steps to "observe" the effect of destructive actions on state
-   (e.g., do not place Reset before checkout just to see the cart clear).
+   Do NOT reorder steps to "observe" the effect of destructive actions on state.
    The Spec Checker verifies each page's structure and content independently.
 3. Mark pages that require authentication
 4. Each step must specify HOW to reach it from the previous state
 5. `interactions_needed` = ONLY actions that satisfy PREREQUISITES for a LATER step.
-   Example: "Click 'Add to cart' on one product" on the inventory page, because the
-   Shopping Cart step requires items in the cart.
+   Example: On a listing page, select or create an item that a downstream step requires.
    Do NOT include actions that merely test or verify the current page (sorting, filtering,
    hovering to see tooltips, toggling UI controls) — the Spec Checker handles verification.
    Leave empty ("") if this page has no downstream prerequisites to satisfy.
@@ -111,6 +109,41 @@ Respond with ONLY valid JSON:
 """
 
 
+PROMPT_STEP_ADVISOR = """\
+You just completed verifying a section of a web application. Now decide if
+the NEXT planned step is still valid given the current page state.
+
+## Just Completed
+- **Section:** {completed_section} ({completed_score}/100)
+
+## Current State
+- **URL:** {current_url}
+- **Title:** {current_title}
+
+## Page Content
+{page_content}
+
+## Next Planned Step
+- **Target:** {next_section}
+- **Page Type:** {next_page_type}
+- **How to reach:** {next_how_to_reach}
+- **Prerequisites:** {next_prerequisites}
+- **Interactions needed:** {next_interactions}
+
+## Remaining Sections
+{remaining_sections}
+
+Decide whether the next step is still valid. If not, suggest adjustments.
+Respond with ONLY valid JSON:
+{{
+  "next_step_valid": true | false,
+  "adjusted_how_to_reach": "<new approach if invalid, else empty string>",
+  "prerequisite_actions": "<actions needed before the next step, else empty string>",
+  "reasoning": "<brief explanation>"
+}}\
+"""
+
+
 # =====================================================================
 # 2. ACTION ENGINE PROMPTS
 # =====================================================================
@@ -118,7 +151,8 @@ Respond with ONLY valid JSON:
 PROMPT_ACTION_ENGINE_SYSTEM = """\
 You are a browser automation agent. Given a GOAL, examine the page's interactive
 elements and decide which actions to take. You are called in a loop — each call
-shows the current page state and prior step history.
+shows the current page state, prior step history, and optionally a screenshot
+of the current page for visual confirmation.
 
 # Available Actions
 | Action | Format | Description |
@@ -134,12 +168,27 @@ shows the current page state and prior step history.
 | scroll_down | {"scroll_down": {"amount": 500}} | Scroll down |
 | scroll_up | {"scroll_up": {"amount": 500}} | Scroll up |
 | wait_for_element | {"wait_for_element": {"text": "...", "timeout": 5000}} | Wait for text |
+| close_tab | {"close_tab": {"page_id": N}} | Close browser tab N |
+| switch_to_tab | {"switch_to_tab": {"page_id": N}} | Switch active tab to N |
 
 # Strategy
 1. Match goal keywords to visible elements (text, labels, data-test attributes, IDs)
 2. For forms: fill ALL required fields, then submit. For menus: click toggle first, then item.
 3. Prefer elements with data-test attributes or IDs over generic selectors
 4. Use navigate_to only for explicit URL targets — prefer clicking otherwise
+
+# Multi-Tab Handling
+Sometimes clicking a link opens a NEW BROWSER TAB (e.g., external social media links,
+target="_blank" links). When this happens:
+1. The "Browser Tabs" section in the prompt will list ALL open tabs with their URLs
+2. If a tab is NOT relevant to your goal (external site, ad, social media), close it
+   with close_tab and switch back to your working tab with switch_to_tab
+3. ALWAYS close rogue tabs BEFORE attempting any other actions — interacting with the
+   wrong tab wastes steps and causes failures
+4. If you are on the wrong tab (the ACTIVE tab is not the one you need), use
+   switch_to_tab to get back to the correct tab first
+5. Screenshots from ALL open tabs are provided when available — use them to understand
+   which tab has the content you need
 
 # Rules
 1. Return the MINIMUM actions needed
@@ -148,8 +197,9 @@ shows the current page state and prior step history.
 4. For navigation goals ("navigate to X", "click Y to reach Z"): STOP as soon as
    the page changes to the destination. Set goal_achieved=true with no actions.
    Do NOT interact with the destination (no buttons, no forms, no Back/Cancel).
-5. NEVER click "Back to products", "Continue Shopping", "Cancel", or similar
-   return-navigation unless the goal explicitly asks for it
+5. NEVER click return-navigation links ("Back", "Cancel", "Home", etc.)
+   unless the goal explicitly asks for it
+6. If multiple tabs are open and one is irrelevant, ALWAYS close it first
 
 # Response Format
 {
@@ -167,6 +217,7 @@ PROMPT_ACTION_ENGINE_STEP = """\
 URL: {current_url}
 Title: {current_title}
 
+{tab_context}
 ## Interactive Elements (use index for actions)
 {selector_map_string}
 
