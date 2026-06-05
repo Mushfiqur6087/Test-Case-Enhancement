@@ -1,4 +1,4 @@
-"""Simplified debug logging for the Intelligent Navigator."""
+"""Simplified debug logging for the Test Case Enhancement."""
 
 from datetime import datetime
 from pathlib import Path

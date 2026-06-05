@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-intelligent-navigator = "intelligent_navigator.__main__:main"
+intelligent-navigator = "test_case_enhancement.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["intelligent_navigator*"]
+include = ["test_case_enhancement*"]

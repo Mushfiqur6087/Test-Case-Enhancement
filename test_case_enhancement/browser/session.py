@@ -4,8 +4,8 @@ import base64
 from typing import Optional, List, Dict, Any
 from playwright.sync_api import Page, BrowserContext, sync_playwright, Browser
 
-from intelligent_navigator.browser.dom_parser import DOMTreeParser, DOMElementNode
-from intelligent_navigator.browser.dom_helper import FullPageDOMTreeParser
+from test_case_enhancement.browser.dom_parser import DOMTreeParser, DOMElementNode
+from test_case_enhancement.browser.dom_helper import FullPageDOMTreeParser
 
 
 class BrowserSession:

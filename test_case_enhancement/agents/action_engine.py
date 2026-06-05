@@ -21,19 +21,19 @@ Key improvements over Navigator:
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.utils import (
+from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.core.utils import (
     get_current_title,
     get_current_url,
     log,
     parse_llm_json,
     wait_for_page,
 )
-from intelligent_navigator.browser.controller import BrowserController
-from intelligent_navigator.browser.dom_helper import DOMHelper
-from intelligent_navigator.browser.screenshot import capture_screenshot_b64
-from intelligent_navigator.browser.selector_filter import SelectorMapFilter
-from intelligent_navigator.agents.prompts import (
+from test_case_enhancement.browser.controller import BrowserController
+from test_case_enhancement.browser.dom_helper import DOMHelper
+from test_case_enhancement.browser.screenshot import capture_screenshot_b64
+from test_case_enhancement.browser.selector_filter import SelectorMapFilter
+from test_case_enhancement.agents.prompts import (
     PROMPT_ACTION_ENGINE_SYSTEM,
     PROMPT_ACTION_ENGINE_STEP,
 )

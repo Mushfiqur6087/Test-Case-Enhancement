@@ -20,33 +20,33 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
-from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.logging import DebugLogger
-from intelligent_navigator.core.models import (
+from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.core.logging import DebugLogger
+from test_case_enhancement.core.models import (
     RoleCredentials,
     SectionVerificationResult,
     SpecSection,
     VerificationReport,
 )
-from intelligent_navigator.core.utils import (
+from test_case_enhancement.core.utils import (
     get_current_title,
     get_current_url,
     log,
     wait_for_page,
 )
-from intelligent_navigator.browser.controller import BrowserController
-from intelligent_navigator.browser.dom_helper import DOMHelper
-from intelligent_navigator.browser.selector_filter import SelectorMapFilter
-from intelligent_navigator.exploration.credentials import CredentialParser
-from intelligent_navigator.agents.page_identifier import PageIdentifierAgent
-from intelligent_navigator.agents.traversal_planner import (
+from test_case_enhancement.browser.controller import BrowserController
+from test_case_enhancement.browser.dom_helper import DOMHelper
+from test_case_enhancement.browser.selector_filter import SelectorMapFilter
+from test_case_enhancement.exploration.credentials import CredentialParser
+from test_case_enhancement.agents.page_identifier import PageIdentifierAgent
+from test_case_enhancement.agents.traversal_planner import (
     TraversalPlannerAgent,
     TraversalStep,
 )
-from intelligent_navigator.agents.action_engine import ActionEngine
-from intelligent_navigator.spec_verifier.description_parser import DescriptionParser
-from intelligent_navigator.spec_verifier.checker import SpecCheckerAgent
-from intelligent_navigator.spec_verifier import report as report_module
+from test_case_enhancement.agents.action_engine import ActionEngine
+from test_case_enhancement.spec_verifier.description_parser import DescriptionParser
+from test_case_enhancement.spec_verifier.checker import SpecCheckerAgent
+from test_case_enhancement.spec_verifier import report as report_module
 
 
 # ---- Constants ----
@@ -602,7 +602,7 @@ class TraversalOrchestrator:
         before_content = self._get_combined_page_content()
         before_screenshot_b64 = None
         if self._base_llm.is_vision:
-            from intelligent_navigator.browser.screenshot import capture_screenshot_b64
+            from test_case_enhancement.browser.screenshot import capture_screenshot_b64
             before_screenshot_b64 = capture_screenshot_b64(self.browser_session)
 
         self._log(
@@ -718,8 +718,8 @@ class TraversalOrchestrator:
 
         This is generic — driven entirely by the spec text, not hardcoded.
         """
-        from intelligent_navigator.agents.prompts import PROMPT_ACTION_PREREQUISITE_CHECK
-        from intelligent_navigator.core.utils import parse_llm_json
+        from test_case_enhancement.agents.prompts import PROMPT_ACTION_PREREQUISITE_CHECK
+        from test_case_enhancement.core.utils import parse_llm_json
 
         current_url = get_current_url(self.browser_session)
         page_content = self._get_combined_page_content()
@@ -1221,7 +1221,7 @@ class TraversalOrchestrator:
         """
         screenshot_b64 = None
         if self._base_llm.is_vision:
-            from intelligent_navigator.browser.screenshot import capture_screenshot_b64
+            from test_case_enhancement.browser.screenshot import capture_screenshot_b64
             screenshot_b64 = capture_screenshot_b64(self.browser_session)
 
         result = self.checker.check(

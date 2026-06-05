@@ -1,4 +1,4 @@
-# Intelligent Navigator
+# Test Case Enhancement
 
 An LLM-powered **spec verifier** that reads a functional specification (markdown), autonomously navigates a live web application, and verifies whether every described section is correctly implemented — with **zero hardcoded URLs, selectors, or keyword mappings**.
 
@@ -47,7 +47,7 @@ Functional Spec (markdown)  +  Credentials (markdown)  +  Base URL
 ## Architecture
 
 ```
-intelligent_navigator/
+test_case_enhancement/
 ├── __main__.py                     CLI entry point
 ├── agents/
 │   ├── traversal_planner.py        Reads spec → generates ordered TraversalPlan
@@ -228,7 +228,7 @@ Extracts an interactive element map from the live page using injected JavaScript
 
 ```bash
 # 1. Enter the project directory
-cd "Intelligent Navigator"
+cd "Test Case Enhancement"
 
 # 2. Create a virtual environment
 python -m venv .venv
@@ -285,14 +285,14 @@ DEBUG=false
 ## Usage
 
 ```bash
-python -m intelligent_navigator \
+python -m test_case_enhancement \
     --functional-desc datasets/swaglabs/SwagLabs,md \
     --credentials datasets/swaglabs/Mock_Data.md
 ```
 
 ### Override settings per run
 ```bash
-python -m intelligent_navigator \
+python -m test_case_enhancement \
     --functional-desc datasets/swaglabs/SwagLabs,md \
     --credentials datasets/swaglabs/Mock_Data.md \
     --model openai/gpt-4o \
@@ -410,7 +410,7 @@ The log contains for each step:
 ## Programmatic API
 
 ```python
-from intelligent_navigator import SpecVerifier
+from test_case_enhancement import SpecVerifier
 
 config = {
     "base_url": "https://www.saucedemo.com",
@@ -436,7 +436,7 @@ print(f"Pass: {report.passed} | Fail: {report.failed} | Skipped: {report.skipped
 - **`Mock_Data.md`** — standard_user credentials
 
 ```bash
-python -m intelligent_navigator \
+python -m test_case_enhancement \
     --functional-desc datasets/swaglabs/SwagLabs,md \
     --credentials datasets/swaglabs/Mock_Data.md \
     --url https://www.saucedemo.com \

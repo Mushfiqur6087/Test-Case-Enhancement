@@ -1,5 +1,5 @@
 """
-CLI entry point for the Intelligent Navigator.
+CLI entry point for the Test Case Enhancement.
 
 Configuration priority (highest to lowest):
   1. CLI flags          --api-key, --model, --url, etc.
@@ -8,7 +8,7 @@ Configuration priority (highest to lowest):
 
 Usage examples:
     # Spec verification
-    python -m intelligent_navigator \
+    python -m test_case_enhancement \
         --functional-desc input/parabank/Parabank.md \
         --credentials input/parabank/Mock_Data.md
 """
@@ -39,7 +39,7 @@ def main():
     env_debug   = os.getenv("DEBUG", "false").lower() == "true"
 
     parser = argparse.ArgumentParser(
-        description="Intelligent Navigator — Spec Compliance Verifier",
+        description="Test Case Enhancement — Spec Compliance Verifier",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
@@ -112,7 +112,7 @@ def main():
     }
 
     # ---- Spec Verifier ----
-    from intelligent_navigator.spec_verifier import SpecVerifier
+    from test_case_enhancement.spec_verifier import SpecVerifier
     verifier = SpecVerifier({**base_config, "functional_desc_file": args.functional_desc})
     try:
         verifier.run()

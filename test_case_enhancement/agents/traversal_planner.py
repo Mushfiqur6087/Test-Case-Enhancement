@@ -17,10 +17,10 @@ Key design:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.models import SpecSection
-from intelligent_navigator.core.utils import log, parse_llm_json
-from intelligent_navigator.agents.prompts import (
+from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.core.models import SpecSection
+from test_case_enhancement.core.utils import log, parse_llm_json
+from test_case_enhancement.agents.prompts import (
     PROMPT_TRAVERSAL_PLANNER_SYSTEM,
     PROMPT_TRAVERSAL_PLANNER_USER,
     PROMPT_REPLAN_STEP,

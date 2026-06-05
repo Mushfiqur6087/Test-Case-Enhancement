@@ -9,8 +9,8 @@ Combines:
 
 from typing import Tuple
 
-from intelligent_navigator.browser.dom_builder import DomTreeBuilder
-from intelligent_navigator.browser.dom_parser import DOMTreeParser, DOMElementNode
+from test_case_enhancement.browser.dom_builder import DomTreeBuilder
+from test_case_enhancement.browser.dom_parser import DOMTreeParser, DOMElementNode
 
 
 class FullPageDomTreeBuilder(DomTreeBuilder):

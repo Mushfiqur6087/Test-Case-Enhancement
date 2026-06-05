@@ -14,10 +14,10 @@ Main entry points:
   - VerificationReport    : the final output dataclass (also in core.models)
 """
 
-from intelligent_navigator.spec_verifier.orchestrator import (
+from test_case_enhancement.spec_verifier.orchestrator import (
     TraversalOrchestrator,
     SpecVerifier,  # backward-compatible alias
 )
-from intelligent_navigator.core.models import VerificationReport
+from test_case_enhancement.core.models import VerificationReport
 
 __all__ = ["TraversalOrchestrator", "SpecVerifier", "VerificationReport"]

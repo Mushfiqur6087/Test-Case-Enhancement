@@ -1,4 +1,4 @@
-"""Shared utility functions used across the intelligent_navigator package."""
+"""Shared utility functions used across the test_case_enhancement package."""
 
 import json
 import os

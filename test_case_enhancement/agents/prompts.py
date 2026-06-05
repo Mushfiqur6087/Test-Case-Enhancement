@@ -1,5 +1,5 @@
 """
-LLM prompt templates for the Intelligent Navigator.
+LLM prompt templates for the Test Case Enhancement.
 
 Prompts:
   1. Traversal Planner  -- generates a traversal plan from the spec

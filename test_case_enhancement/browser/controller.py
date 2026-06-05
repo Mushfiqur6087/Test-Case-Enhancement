@@ -2,8 +2,8 @@
 
 from typing import Optional, Dict, Any, Union, List
 
-from intelligent_navigator.browser.css_utils import css_id_selector
-from intelligent_navigator.browser.session import BrowserSession
+from test_case_enhancement.browser.css_utils import css_id_selector
+from test_case_enhancement.browser.session import BrowserSession
 
 
 class BrowserController:

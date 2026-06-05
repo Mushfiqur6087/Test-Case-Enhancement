@@ -14,10 +14,10 @@ Returns a SectionVerificationResult with:
   - notes         : brief narrative summary
 """
 
-from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.models import SpecSection, SectionVerificationResult
-from intelligent_navigator.core.utils import log, parse_llm_json
-from intelligent_navigator.spec_verifier.prompts import (
+from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.core.models import SpecSection, SectionVerificationResult
+from test_case_enhancement.core.utils import log, parse_llm_json
+from test_case_enhancement.spec_verifier.prompts import (
     PROMPT_SPEC_CHECKER_SYSTEM,
     PROMPT_SPEC_CHECKER_CHECK,
 )

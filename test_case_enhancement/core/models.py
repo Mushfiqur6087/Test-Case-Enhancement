@@ -1,5 +1,5 @@
 """
-Data models for the Intelligent Navigator spec verification pipeline.
+Data models for the Test Case Enhancement spec verification pipeline.
 """
 
 from dataclasses import dataclass, field

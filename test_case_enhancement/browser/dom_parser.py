@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from intelligent_navigator.browser.dom_builder import DomTreeBuilder
+from test_case_enhancement.browser.dom_builder import DomTreeBuilder
 
 
 @dataclass

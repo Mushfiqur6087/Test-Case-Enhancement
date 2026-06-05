@@ -11,7 +11,7 @@ the real URL for each section by navigating the live application.
 import re
 from typing import List, Optional
 
-from intelligent_navigator.core.models import SpecSection
+from test_case_enhancement.core.models import SpecSection
 
 
 class DescriptionParser:

@@ -2,8 +2,8 @@
 
 from typing import List
 
-from intelligent_navigator.core.models import RoleCredentials
-from intelligent_navigator.core.utils import parse_llm_json, read_file_contents
+from test_case_enhancement.core.models import RoleCredentials
+from test_case_enhancement.core.utils import parse_llm_json, read_file_contents
 
 
 class CredentialParser:
@@ -14,7 +14,7 @@ class CredentialParser:
 
     def parse_credentials(self, credentials_file_path: str) -> List[RoleCredentials]:
         """Read and parse credentials file using LLM to extract structured data."""
-        from intelligent_navigator.agents.prompts import PROMPT_CREDENTIAL_PARSING
+        from test_case_enhancement.agents.prompts import PROMPT_CREDENTIAL_PARSING
 
         content = read_file_contents(credentials_file_path)
         if content.startswith("Error:"):

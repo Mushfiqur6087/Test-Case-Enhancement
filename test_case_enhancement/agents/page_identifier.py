@@ -10,10 +10,10 @@ Confidence threshold: 60 — below that it is treated as no match.
 
 from typing import List, Optional, Tuple
 
-from intelligent_navigator.core.llm import LLMClient
-from intelligent_navigator.core.models import SpecSection
-from intelligent_navigator.core.utils import log, parse_llm_json
-from intelligent_navigator.agents.prompts import (
+from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.core.models import SpecSection
+from test_case_enhancement.core.utils import log, parse_llm_json
+from test_case_enhancement.agents.prompts import (
     PROMPT_PAGE_IDENTIFIER_SYSTEM,
     PROMPT_PAGE_IDENTIFIER_USER,
 )

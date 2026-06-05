@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from typing import List
 
-from intelligent_navigator.core.models import (
+from test_case_enhancement.core.models import (
     SectionVerificationResult,
     VerificationReport,
 )
