@@ -61,6 +61,11 @@ def main():
         help="Path to credentials markdown for automatic login",
     )
     parser.add_argument(
+        "--test-cases",
+        default="",
+        help="Path to test cases markdown file for step verification",
+    )
+    parser.add_argument(
         "--output",
         default=env_output,
         help=f"Output directory for reports (env: OUTPUT_DIR, default: {env_output})",
@@ -105,6 +110,7 @@ def main():
     base_config = {
         "base_url": args.url,
         "credentials_file": args.credentials,
+        "test_cases_file": args.test_cases,
         "output_dir": args.output,
         "api_key": api_key,
         "model_name": args.model,

@@ -78,7 +78,23 @@ def write_report(report: VerificationReport, output_dir: str) -> dict:
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(_render_markdown(report))
 
-    return {"json": json_path, "markdown": md_path}
+    # --- Enriched Test Cases JSON ---
+    all_enriched = []
+    for section_res in report.section_results:
+        if hasattr(section_res, "enriched_test_cases"):
+            all_enriched.extend([tc.to_dict() for tc in section_res.enriched_test_cases])
+            
+    enriched_path = ""
+    if all_enriched:
+        enriched_path = os.path.join(output_dir, "enriched_test_cases.json")
+        with open(enriched_path, "w", encoding="utf-8") as f:
+            json.dump({"test_cases": all_enriched}, f, indent=2, ensure_ascii=False)
+
+    return {
+        "json": json_path,
+        "markdown": md_path,
+        "enriched_test_cases": enriched_path
+    }
 
 
 # ------------------------------------------------------------------ #
@@ -157,6 +173,30 @@ def _render_markdown(report: VerificationReport) -> str:
 
         if result.notes:
             lines.append(f"*{result.notes}*")
+            lines.append("")
+
+        if hasattr(result, "test_case_results") and result.test_case_results:
+            lines.append("#### Test Case Verification")
+            lines.append("")
+            for tc_res in result.test_case_results:
+                tc_badge = _VERDICT_BADGE.get(tc_res.verdict, "❓")
+                if tc_res.verdict == "invalid_steps":
+                    tc_badge = "⚠️"
+                elif tc_res.verdict == "valid":
+                    tc_badge = "✅"
+                elif tc_res.verdict == "invalid":
+                    tc_badge = "❌"
+                    
+                lines.append(f"- **{tc_res.tc_id}** {tc_badge} {tc_res.verdict.upper()}")
+                if tc_res.invalid_steps:
+                    for invalid in tc_res.invalid_steps:
+                        lines.append(f"  - ❌ {invalid}")
+                if tc_res.missing_steps:
+                    for missing in tc_res.missing_steps:
+                        lines.append(f"  - ⚠️ {missing}")
+                if tc_res.precondition_issues:
+                    for pre in tc_res.precondition_issues:
+                        lines.append(f"  - 🛑 {pre}")
             lines.append("")
 
         lines.append("---")

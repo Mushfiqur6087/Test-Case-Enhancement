@@ -47,6 +47,9 @@ from test_case_enhancement.agents.action_engine import ActionEngine
 from test_case_enhancement.spec_verifier.description_parser import DescriptionParser
 from test_case_enhancement.spec_verifier.checker import SpecCheckerAgent
 from test_case_enhancement.spec_verifier import report as report_module
+from test_case_enhancement.agents.tc_checker import TestCaseCheckerAgent
+from test_case_enhancement.agents.tc_enricher import TestCaseEnricherAgent
+from test_case_enhancement.tc_parser import parse_test_cases
 
 
 # ---- Constants ----
@@ -78,6 +81,7 @@ class TraversalOrchestrator:
         self.output_dir = config.get("output_dir", "output")
         self.debug = config.get("debug", False)
         self.skip_sections = config.get("skip_sections", None)
+        self.test_cases_file = config.get("test_cases_file", "")
 
         # ---- Debug logging ----
         self.debug_logger = DebugLogger()
@@ -127,11 +131,22 @@ class TraversalOrchestrator:
             debug=self.debug,
             debug_file=self.debug_file,
         )
+        self.tc_checker = TestCaseCheckerAgent(
+            llm=self._base_llm,
+            debug=self.debug,
+            debug_file=self.debug_file,
+        )
+        self.tc_enricher = TestCaseEnricherAgent(
+            llm=self._base_llm,
+            debug=self.debug,
+            debug_file=self.debug_file,
+        )
 
         # ---- Spec components ----
         self.parser = DescriptionParser()
         self.credential_parser = CredentialParser(self._base_llm)
         self.credentials: List[RoleCredentials] = []
+        self.test_cases: Dict[str, List[Any]] = {}
 
         # ---- LLM call tracking ----
         self.llm_call_count = 0
@@ -161,6 +176,13 @@ class TraversalOrchestrator:
 
         # 2. Parse credentials
         self._load_credentials()
+
+        # 2b. Parse test cases
+        if self.test_cases_file:
+            self._log(f"Loading test cases from: {self.test_cases_file}")
+            self.test_cases = parse_test_cases(self.test_cases_file)
+            total_tc = sum(len(tcs) for tcs in self.test_cases.values())
+            self._log(f"Parsed {total_tc} test cases across {len(self.test_cases)} modules.")
 
         # 3. Navigate to base URL
         self.browser_controller.execute_command("navigate_to", self.base_url)
@@ -347,6 +369,8 @@ class TraversalOrchestrator:
         self._log(f"Overall score: {report.overall_score:.0f}/100")
         self._log(f"JSON   → {paths['json']}")
         self._log(f"Report → {paths['markdown']}")
+        if "enriched_test_cases" in paths and paths["enriched_test_cases"]:
+            self._log(f"Enriched TCs → {paths['enriched_test_cases']}")
         self._log(f"LLM calls: {total_llm}")
         self._log("=" * 60)
 
@@ -1237,6 +1261,35 @@ class TraversalOrchestrator:
             before_screenshot_b64=before_screenshot_b64,
         )
         result.navigation_success = True
+
+        # ---- TEST CASE VERIFICATION ----
+        if getattr(self, "test_cases_file", None) and section.name in getattr(self, "test_cases", {}):
+            tcs = self.test_cases[section.name]
+            self._log(f"    [TestCaseChecker] Verifying {len(tcs)} test cases for '{section.name}'...")
+            tc_results = self.tc_checker.verify_test_cases(
+                module_name=section.name,
+                page_url=current_url,
+                page_title=current_title,
+                dom_context=page_content,
+                test_cases=tcs,
+                screenshot_b64=screenshot_b64,
+            )
+            result.test_case_results = tc_results
+            self._log(f"    [TestCaseChecker] Done. ({len(tc_results)} results)")
+
+            # ---- TEST CASE ENRICHMENT ----
+            mock_data = getattr(self, "mock_data_text", "")
+            self._log(f"    [TestCaseEnricher] Enriching and repairing {len(tcs)} test cases...")
+            enriched_results = self.tc_enricher.enrich_test_cases(
+                module_name=section.name,
+                base_url=self.base_url,
+                mock_data=mock_data,
+                test_cases=tcs,
+                verification_results=tc_results,
+            )
+            result.enriched_test_cases = enriched_results
+            self._log(f"    [TestCaseEnricher] Done. ({len(enriched_results)} enriched TCs)")
+
         return result
 
     # ================================================================
@@ -1399,7 +1452,11 @@ class TraversalOrchestrator:
 
     def _load_credentials(self) -> None:
         self._log("\n--- Credentials ---")
+        self.mock_data_text = ""
         if self.credentials_file and os.path.isfile(self.credentials_file):
+            with open(self.credentials_file, "r", encoding="utf-8") as f:
+                self.mock_data_text = f.read()
+
             self.credentials = self.credential_parser.parse_credentials(
                 self.credentials_file
             )
