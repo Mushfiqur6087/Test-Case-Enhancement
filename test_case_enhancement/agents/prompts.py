@@ -183,7 +183,7 @@ Respond with ONLY valid JSON:
 
 PROMPT_ACTION_PREREQUISITE_CHECK = """\
 You are a web automation assistant. An action-type step is about to be executed.
-Action steps (e.g. Logout, Reset App State, Delete) are verified by comparing
+Action steps (e.g. Logout, Clear Workspace, Delete) are verified by comparing
 the page state BEFORE vs AFTER the action. If the required observable state
 doesn't exist yet, both snapshots will be identical and verification will be
 inconclusive.
@@ -233,8 +233,6 @@ of the current page for visual confirmation.
 | clear_input | {"clear_input": {"index": N}} | Clear a field |
 | select_option | {"select_option": {"index": N, "value": "val"}} | Select from dropdown |
 | press_key | {"press_key": {"key": "Enter"}} | Press Enter, Tab, Escape, etc. |
-| scroll_down | {"scroll_down": {"amount": 500}} | Scroll down |
-| scroll_up | {"scroll_up": {"amount": 500}} | Scroll up |
 | wait_for_element | {"wait_for_element": {"text": "...", "timeout": 5000}} | Wait for text |
 | close_tab | {"close_tab": {"page_id": N}} | Close browser tab N |
 | switch_to_tab | {"switch_to_tab": {"page_id": N}} | Switch active tab to N |
@@ -246,17 +244,9 @@ of the current page for visual confirmation.
 4. Use navigate_to only for explicit URL targets — prefer clicking otherwise
 
 # Multi-Tab Handling
-Sometimes clicking a link opens a NEW BROWSER TAB (e.g., external social media links,
-target="_blank" links). When this happens:
-1. The "Browser Tabs" section in the prompt will list ALL open tabs with their URLs
-2. If a tab is NOT relevant to your goal (external site, ad, social media), close it
-   with close_tab and switch back to your working tab with switch_to_tab
-3. ALWAYS close rogue tabs BEFORE attempting any other actions — interacting with the
-   wrong tab wastes steps and causes failures
-4. If you are on the wrong tab (the ACTIVE tab is not the one you need), use
-   switch_to_tab to get back to the correct tab first
-5. Screenshots from ALL open tabs are provided when available — use them to understand
-   which tab has the content you need
+If a click opens a NEW BROWSER TAB:
+1. The "Browser Tabs" section lists all open tabs with their URLs.
+2. If the active tab is irrelevant (e.g., an ad or external site), close it using `close_tab` and use `switch_to_tab` to return to the correct tab BEFORE taking any other actions.
 
 # Rules
 1. Return the MINIMUM actions needed

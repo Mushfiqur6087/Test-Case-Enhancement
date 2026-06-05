@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "intelligent-navigator"
+name = "test-case-enhancement"
 version = "0.2.0"
 description = "LLM-powered spec compliance verifier for web applications"
 readme = "README.md"
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-intelligent-navigator = "test_case_enhancement.__main__:main"
+test-case-enhancement = "test_case_enhancement.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["test_case_enhancement*"]

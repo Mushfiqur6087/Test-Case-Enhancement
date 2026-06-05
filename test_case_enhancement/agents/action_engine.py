@@ -420,8 +420,6 @@ class ActionEngine:
             "click_element":    self._handle_click_element,
             "navigate_to":      self._handle_navigate_to,
             "input_text":       self._handle_input_text,
-            "scroll_down":      self._handle_scroll_down,
-            "scroll_up":        self._handle_scroll_up,
             "go_back":          self._handle_go_back,
             "hover":            self._handle_hover,
             "select_option":    self._handle_select_option,
@@ -475,16 +473,6 @@ class ActionEngine:
         if idx is None:
             return False
         self.browser_controller.execute_command("input_text", int(idx), text)
-        return True
-
-    def _handle_scroll_down(self, params: Dict[str, Any]) -> bool:
-        amount = params.get("amount", 500)
-        self.browser_controller.execute_command("scroll_down", int(amount))
-        return True
-
-    def _handle_scroll_up(self, params: Dict[str, Any]) -> bool:
-        amount = params.get("amount", 500)
-        self.browser_controller.execute_command("scroll_up", int(amount))
         return True
 
     def _handle_navigate_to(self, params: Dict[str, Any]) -> bool:
