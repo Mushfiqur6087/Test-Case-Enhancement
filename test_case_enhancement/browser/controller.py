@@ -19,8 +19,6 @@ class BrowserController:
             "go_back":          self.go_back,
             "click_element":    self.click_element_by_index,
             "input_text":       self.input_text,
-            "scroll_down":      self.scroll_down,
-            "scroll_up":        self.scroll_up,
             "hover":            self.hover_element,
             "select_option":    self.select_option,
             "press_key":        self.press_key,
@@ -158,34 +156,7 @@ class BrowserController:
             print(f"  [Controller] input_text({element_index}) error: {e}")
             return False
 
-    def scroll_down(self, amount: int = 500) -> bool:
-        try:
-            page = self.browser_context.get_current_page()
-            if page is None:
-                return False
-            page.mouse.wheel(0, amount)
-            page.wait_for_timeout(500)
-            # Scrolling reveals new lazy-loaded elements — invalidate cache so
-            # the next get_selector_map() or DOMHelper.scroll_and_capture()
-            # picks them up. (This is a cross-step reset, not within-batch.)
-            self.browser_context._parser = None
-            self.browser_context._selector_map = None
-            return True
-        except Exception:
-            return False
 
-    def scroll_up(self, amount: int = 500) -> bool:
-        try:
-            page = self.browser_context.get_current_page()
-            if page is None:
-                return False
-            page.mouse.wheel(0, -amount)
-            page.wait_for_timeout(500)
-            self.browser_context._parser = None
-            self.browser_context._selector_map = None
-            return True
-        except Exception:
-            return False
 
     def hover_element(self, element_index: int) -> bool:
         """Hover over an element to reveal dropdowns, tooltips, or menus."""

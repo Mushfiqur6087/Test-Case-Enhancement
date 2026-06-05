@@ -154,24 +154,10 @@ class BrowserSession:
         self._parser = None
         self._selector_map = None
 
-    def refresh_page(self) -> None:
-        page = self.get_current_page()
-        if page:
-            page.reload()
-            self._parser = None
-            self._selector_map = None
-
     def go_back(self) -> None:
         page = self.get_current_page()
         if page:
             page.go_back()
-            self._parser = None
-            self._selector_map = None
-
-    def go_forward(self) -> None:
-        page = self.get_current_page()
-        if page:
-            page.go_forward()
             self._parser = None
             self._selector_map = None
 
@@ -354,39 +340,6 @@ class BrowserSession:
             return self._selector_map
         except Exception:
             return None
-
-    def get_selector_map_string(self, refresh: bool = True) -> str:
-        """Returns a human-readable string of interactive elements."""
-        if self._parser is None:
-            self.get_element_tree(refresh=refresh)
-        if not self._parser:
-            return ""
-        try:
-            return self._parser.get_selector_map_string()
-        except Exception:
-            return ""
-
-    def get_selector_map_json(self, refresh: bool = True) -> str:
-        """Returns a JSON string of interactive elements."""
-        if self._parser is None:
-            self.get_element_tree(refresh=refresh)
-        if not self._parser:
-            return "{}"
-        try:
-            return self._parser.selector_map_json()
-        except Exception:
-            return "{}"
-
-    def get_element_tree_string(self, refresh: bool = True) -> str:
-        """Returns a human-readable string of the element tree."""
-        if self._parser is None:
-            self.get_element_tree(refresh=refresh)
-        if not self._parser:
-            return ""
-        try:
-            return self._parser.get_dom_string()
-        except Exception:
-            return ""
 
     def close(self) -> None:
         self._tabs.clear()

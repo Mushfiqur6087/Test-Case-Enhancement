@@ -592,12 +592,6 @@ class ActionEngine:
         except Exception:
             pass
 
-    def _dismiss_overlays(self) -> None:
-        """No-op: overlays are handled by the LLM via explicit press_key: Escape.
-        Unconditional Escape was removed because it closed intentionally-opened
-        overlays (hamburger menu, dropdowns) between ActionEngine steps."""
-        pass
-
     def _filter_selector_map(
         self, selector_map_json: str, selector_map_string: str
     ) -> str:
@@ -612,8 +606,6 @@ class ActionEngine:
         "click_element":    lambda p: f"clicked element #{p.get('index')}",
         "navigate_to":      lambda p: f"navigated to '{p.get('url', '')}'",
         "input_text":       lambda p: f"typed '{p.get('text', '')}' into #{p.get('index')}",
-        "scroll_down":      lambda p: f"scrolled down {p.get('amount', 500)}px",
-        "scroll_up":        lambda p: f"scrolled up {p.get('amount', 500)}px",
         "go_back":          lambda p: "went back",
         "hover":            lambda p: f"hovered #{p.get('index')}",
         "select_option":    lambda p: f"selected '{p.get('value', '')}' in #{p.get('index')}",
