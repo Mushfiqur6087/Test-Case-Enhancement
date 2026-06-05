@@ -149,9 +149,9 @@ class BrowserController:
                     print(f"  [Controller] input_text({element_index}) error: {e2}")
                     return False
 
-            self.browser_context._parser = None
-            self.browser_context._selector_map = None
-
+            # NOTE: do NOT reset _parser/_selector_map here.
+            # input_text never adds/removes DOM elements, so the cached index
+            # map remains valid for subsequent actions in the same batch.
             return True
 
         except Exception as e:
@@ -165,6 +165,9 @@ class BrowserController:
                 return False
             page.mouse.wheel(0, amount)
             page.wait_for_timeout(500)
+            # Scrolling reveals new lazy-loaded elements — invalidate cache so
+            # the next get_selector_map() or DOMHelper.scroll_and_capture()
+            # picks them up. (This is a cross-step reset, not within-batch.)
             self.browser_context._parser = None
             self.browser_context._selector_map = None
             return True
@@ -220,6 +223,8 @@ class BrowserController:
                     print(f"  [Controller] hover_element({element_index}) error: {e2}")
                     return False
 
+            # Hover reveals new menu items — invalidate cache so the next
+            # LLM step sees the revealed elements in its fresh DOM capture.
             page.wait_for_timeout(500)
             self.browser_context._parser = None
             self.browser_context._selector_map = None
@@ -256,6 +261,9 @@ class BrowserController:
             except Exception:
                 locator.select_option(label=value, timeout=5000)
 
+            # select_option can trigger JS that shows/hides conditional fields
+            # (e.g. account type dropdown reveals extra options). Reset cache
+            # so the next action in the batch sees the updated DOM.
             page.wait_for_timeout(500)
             self.browser_context._parser = None
             self.browser_context._selector_map = None
@@ -287,8 +295,9 @@ class BrowserController:
 
             page.keyboard.press(key)
             page.wait_for_timeout(300)
-            self.browser_context._parser = None
-            self.browser_context._selector_map = None
+            # NOTE: do NOT reset _parser/_selector_map here for non-navigation
+            # keys (Tab, Escape, etc.). Enter may navigate — but the next
+            # ActionEngine step will call scroll_and_capture() and re-sync anyway.
             return True
 
         except Exception as e:
@@ -316,8 +325,8 @@ class BrowserController:
             else:
                 page.locator(f"xpath={xpath}").fill("", timeout=5000)
 
-            self.browser_context._parser = None
-            self.browser_context._selector_map = None
+            # NOTE: do NOT reset _parser/_selector_map here.
+            # Clearing a field never adds/removes DOM elements.
             return True
 
         except Exception as e:

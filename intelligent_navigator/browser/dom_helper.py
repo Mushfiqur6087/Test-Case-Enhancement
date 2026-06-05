@@ -49,6 +49,13 @@ class DOMHelper:
         """
         Scroll the full page to trigger lazy-loaded content, then capture
         the complete DOM. Returns (selector_map_json, selector_map_string).
+
+        IMPORTANT: After building the parser, we write it back to
+        BrowserSession._parser and _selector_map.  This ensures the
+        BrowserController reuses the *exact same index space* the LLM
+        received — preventing the split-brain where the ActionEngine's
+        DOMHelper and the controller each build independent parsers whose
+        indices diverge (root cause of "index not in selector_map" errors).
         """
         page = self.browser_session.get_current_page()
         if page is None:
@@ -77,13 +84,25 @@ class DOMHelper:
         return self._capture_dom()
 
     def _capture_dom(self) -> Tuple[str, str]:
-        """Capture the current DOM as (selector_map_json, selector_map_string)."""
+        """Capture the current DOM as (selector_map_json, selector_map_string).
+
+        Writes the built parser and its derived selector_map back to
+        BrowserSession so the controller (click_element_by_index, input_text,
+        etc.) always operates on the same index space the LLM just received.
+        """
         page = self.browser_session.get_current_page()
         if page is None:
             return ("{}", "")
         try:
             parser = FullPageDOMTreeParser(page)
             parser.parse()
+
+            # ---- Synchronise with BrowserSession ----
+            # Store this parser as the session's canonical source of truth so
+            # BrowserController.get_selector_map() returns the same indices.
+            self.browser_session._parser = parser
+            self.browser_session._selector_map = parser.selector_map()
+
             return (parser.selector_map_json(), parser.get_selector_map_string())
         except Exception:
             return ("{}", "")

@@ -38,11 +38,15 @@ produce an ordered plan to visit every described page/feature.
    The Spec Checker verifies each page's structure and content independently.
 3. Mark pages that require authentication
 4. Each step must specify HOW to reach it from the previous state
-5. `interactions_needed` = ONLY actions that satisfy PREREQUISITES for a LATER step.
-   Example: On a listing page, select or create an item that a downstream step requires.
-   Do NOT include actions that merely test or verify the current page (sorting, filtering,
-   hovering to see tooltips, toggling UI controls) — the Spec Checker handles verification.
-   Leave empty ("") if this page has no downstream prerequisites to satisfy.
+5. `interactions_needed` — STRICT RULES:
+   a. Leave empty ("") in the vast majority of cases. Assume the app has seed/test data.
+   b. Only populate if a SINGLE, MINIMAL navigation action is needed to set up state
+      for a LATER step (e.g., "Click the first account row to open its detail view").
+   c. NEVER include form fills, form submissions, or multi-step sequences.
+      Form submission on form_gateway pages is handled automatically by the system.
+   d. NEVER invent data-creation flows (e.g., "submit this form twice to create accounts").
+      Trust that the application already has the data downstream steps need.
+   e. If in doubt, leave it empty — the system handles missing state gracefully.
 
 # Response Format
 {
@@ -134,12 +138,56 @@ the NEXT planned step is still valid given the current page state.
 {remaining_sections}
 
 Decide whether the next step is still valid. If not, suggest adjustments.
+
+IMPORTANT — for "action" page types, also check OBSERVABLE STATE:
+An action step (e.g. "Reset App State", "Logout", "Delete") is verified by
+comparing state BEFORE vs AFTER the action. If the observable state that the
+spec says should change does not exist yet, the verification will be
+inconclusive (no diff = can't confirm anything worked).
+- Example: "Reset App State" spec says it clears the cart. If the cart is
+  currently empty, the before/after states will be identical → PARTIAL score.
+  Set prerequisite_actions to establish the required state first
+  (e.g. "Click 'Add to cart' on the first product to add an item to the cart").
+- Example: "Logout" spec says it ends the session. If the user is already
+  logged out, set prerequisite_actions to log in first.
+
 Respond with ONLY valid JSON:
 {{
   "next_step_valid": true | false,
   "adjusted_how_to_reach": "<new approach if invalid, else empty string>",
   "prerequisite_actions": "<actions needed before the next step, else empty string>",
   "reasoning": "<brief explanation>"
+}}\
+"""
+
+
+PROMPT_ACTION_PREREQUISITE_CHECK = """\
+You are a web automation assistant. An action-type step is about to be executed.
+Action steps (e.g. Logout, Reset App State, Delete) are verified by comparing
+the page state BEFORE vs AFTER the action. If the required observable state
+doesn't exist yet, both snapshots will be identical and verification will be
+inconclusive.
+
+## Action to verify
+- **Section:** {section_name}
+- **Spec:** {spec_text}
+
+## Current Page
+- **URL:** {current_url}
+
+## Page Content (DOM + visible text)
+{page_content}
+
+Based on the spec, determine:
+1. What observable state must exist on the page for the action's effect to be verifiable?
+2. Is that state currently present on the page?
+3. If NOT present, what is the minimal browser action to establish it?
+
+Respond with ONLY valid JSON:
+{{
+  "setup_needed": true | false,
+  "setup_actions": "<natural language goal for ActionEngine to establish the required state, or empty string>",
+  "reasoning": "<brief explanation of what state is needed and whether it exists>"
 }}\
 """
 

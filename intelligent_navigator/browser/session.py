@@ -328,10 +328,20 @@ class BrowserSession:
         return self._parser.dom_tree
 
     def get_selector_map(self, refresh: bool = True) -> Optional[Dict[int, DOMElementNode]]:
-        """Returns a flat map of interactive elements."""
-        if self._selector_map is not None and not refresh:
+        """Returns a flat map of interactive elements.
+
+        When DOMHelper.scroll_and_capture() has just run, it writes both
+        self._parser and self._selector_map to the session.  In that case
+        we return the pre-built map directly, even when refresh=True, to
+        guarantee the controller operates on the *exact same index space*
+        that the LLM received.  Rebuilding a fresh parser here would assign
+        new indices and cause 'index not in selector_map' failures.
+        """
+        # Fast-path: the DOMHelper just synced a fresh map — reuse it.
+        if self._selector_map is not None:
             return self._selector_map
 
+        # No cached map: build one from the existing parser, or parse fresh.
         parser = self._parser if self._parser else None
         if parser is None:
             root = self.get_element_tree(refresh=refresh)
