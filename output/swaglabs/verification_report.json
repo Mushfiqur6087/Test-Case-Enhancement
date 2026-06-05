@@ -1,0 +1,242 @@
+{
+  "project_url": "https://www.saucedemo.com/",
+  "functional_desc_file": "datasets/swaglabs/SwagLabs,md",
+  "captured_at": "2026-06-05T11:24:20.118893",
+  "summary": {
+    "sections_checked": 10,
+    "passed": 9,
+    "partial": 0,
+    "failed": 1,
+    "skipped": 0,
+    "overall_score": 85.7
+  },
+  "section_results": [
+    {
+      "section_name": "Login",
+      "actual_url": "https://www.saucedemo.com/",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 95,
+      "matches": [
+        "Username input field with placeholder 'Username'.",
+        "Password input field with placeholder 'Password'.",
+        "Login submit button with value 'Login'.",
+        "Accepted usernames list including standard_user and others.",
+        "Shared password text displayed as 'secret_sauce'.",
+        "Page title text reads 'Swag Labs'."
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "All required login fields, login button, and test credentials are present in the DOM and visible text. Runtime behaviors (authentication redirect and error banners) cannot be verified from a static snapshot.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Product Inventory",
+      "actual_url": "https://www.saucedemo.com/inventory.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 92,
+      "matches": [
+        "page title and URL indicate inventory page",
+        "sort dropdown with name and price options",
+        "active sort option 'Name (A to Z)'",
+        "product name links present for each item",
+        "product image links present for each item",
+        "product descriptions visible for each item",
+        "product prices visible for each item",
+        "'Add to cart' buttons present for each product",
+        "shopping cart link (cart anchor) present"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "All static, verifiable Product Inventory elements (names, descriptions, prices, image/title links, sort options, add-to-cart buttons) are present. Dynamic behaviors (button text toggling, cart badge count updates, navigation after clicks) cannot be verified from this static snapshot.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Product Detail",
+      "actual_url": "https://www.saucedemo.com/inventory-item.html?id=4",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 95,
+      "matches": [
+        "product image present",
+        "product name 'Sauce Labs Backpack'",
+        "product description present",
+        "product price '$29.99'",
+        "'Remove' button (reflects in-cart state)",
+        "'Back to products' button present",
+        "cart icon/badge with '6' present"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "All required Product Detail elements (image, name, description, price, cart-state button) and navigation controls (back button, cart icon) are present and consistent with the spec.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Shopping Cart",
+      "actual_url": "https://www.saucedemo.com/cart.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 95,
+      "matches": [
+        "URL is https://www.saucedemo.com/cart.html",
+        "Page title 'Swag Labs' present",
+        "'Your Cart' heading visible",
+        "Six items listed (cart badge '6')",
+        "Each item shows quantity '1'",
+        "Item descriptions present for each product",
+        "Remove button present for each item",
+        "'Continue Shopping' button present",
+        "'Checkout' button present"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "The cart page matches the Shopping Cart spec: items show quantity '1', descriptions and per-item Remove buttons are present, and both Continue Shopping and Checkout controls exist. URL/title are consistent with the cart page.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Checkout - Information",
+      "actual_url": "https://www.saucedemo.com/checkout-step-one.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 90,
+      "matches": [
+        "URL is https://www.saucedemo.com/checkout-step-one.html",
+        "Visible heading 'Checkout: Your Information'",
+        "First Name input placeholder 'First Name'",
+        "Last Name input placeholder 'Last Name'",
+        "Zip/Postal Code input placeholder 'Zip/Postal Code'",
+        "Continue submit control with value 'Continue'",
+        "Cancel button present with inner_text 'Cancel'"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "The static DOM includes the required form fields (first, last, postal), Cancel and Continue controls, and the expected checkout page URL/heading. Validation behavior and error banners are dynamic and not verifiable from this snapshot.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Checkout - Overview",
+      "actual_url": "https://www.saucedemo.com/checkout-step-two.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 95,
+      "matches": [
+        "Checkout: Overview heading present",
+        "Cart quantity badge showing 6",
+        "List of six product names visible",
+        "Payment Information: SauceCard #31337",
+        "Shipping Information: Free Pony Express Delivery!",
+        "Price totals: Item total $129.94",
+        "Price totals: Tax $10.40",
+        "Price totals: Total $140.34",
+        "Cancel button present",
+        "Finish button present"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "The page contains the order summary, payment and shipping info, item/tax/total values, and Cancel/Finish controls as specified. Navigation behavior after clicking Finish/Cancel cannot be verified from the static snapshot.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Checkout - Confirmation",
+      "actual_url": "https://www.saucedemo.com/checkout-complete.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 90,
+      "matches": [
+        "Thank you for your order! success message displayed",
+        "Order dispatched note about pony delivery displayed",
+        "Back Home button present with id back-to-products",
+        "Page heading 'Checkout: Complete!' visible",
+        "URL ends with checkout-complete.html indicating confirmation"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "Confirmation message and Back Home button are present and the URL/title indicate the checkout-complete page. Navigation behavior (returning to Product Inventory) and cart-clearing cannot be verified from this static snapshot.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Navigation Menu",
+      "actual_url": "https://www.saucedemo.com/inventory.html",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 100,
+      "matches": [
+        "Hamburger button labeled 'Open Menu' present",
+        "Side menu link 'All Items' present and visible",
+        "Side menu link 'About' with external href present",
+        "Side menu link 'Logout' present",
+        "Side menu link 'Reset App State' present",
+        "Close button labeled 'Close Menu' present"
+      ],
+      "missing": [],
+      "mismatches": [],
+      "notes": "All required navigation menu items and the open/close controls are present on the inventory page and match the specification.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Logout",
+      "actual_url": "https://www.saucedemo.com/",
+      "actual_title": "Swag Labs",
+      "verdict": "pass",
+      "compliance_score": 85,
+      "matches": [
+        "Before URL is /inventory.html",
+        "Action 'Logout' executed",
+        "After URL is https://www.saucedemo.com/",
+        "After URL differs from before (redirect occurred)",
+        "Page title 'Swag Labs' present"
+      ],
+      "missing": [
+        "Login form (username/password) not visible in snapshot",
+        "Evidence that protected pages are blocked after logout"
+      ],
+      "mismatches": [],
+      "notes": "The logout action resulted in a redirect from /inventory.html to the site root (https://www.saucedemo.com/), which satisfies the required state transition. The static snapshot does not show a login form or prove protected pages are inaccessible without further interaction.",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    },
+    {
+      "section_name": "Reset App State",
+      "actual_url": "https://www.saucedemo.com/inventory.html",
+      "actual_title": "Swag Labs",
+      "verdict": "fail",
+      "compliance_score": 20,
+      "matches": [
+        "Title 'Swag Labs' visible",
+        "URL contains 'inventory.html'",
+        "Sidebar menu with 'Reset App State' present",
+        "Cart icon / badge visible before action",
+        "Product cards showing 'Remove' buttons"
+      ],
+      "missing": [
+        "Cart badge cleared after Reset App State",
+        "Product buttons changed to 'Add to cart' after Reset App State",
+        "Cart contents removed from the page after Reset App State"
+      ],
+      "mismatches": [
+        "Cart badge still shows '1' after reset (should be cleared)",
+        "Products still show 'Remove' (items still in cart) after reset"
+      ],
+      "notes": "The Reset App State action did not clear the cart: the cart badge and Remove buttons remain, indicating the cart was not reset. The page and URL remain on inventory (no logout).",
+      "navigation_success": true,
+      "navigation_failure_reason": ""
+    }
+  ],
+  "verification_stats": {
+    "llm_calls_orchestrator": 3,
+    "llm_calls_planner": 10,
+    "llm_calls_action_engine": 28,
+    "llm_calls_page_identifier": 8,
+    "llm_calls_checker": 10,
+    "llm_calls_total": 59
+  }
+}
