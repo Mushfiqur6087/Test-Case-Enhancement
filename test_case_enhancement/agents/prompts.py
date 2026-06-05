@@ -37,7 +37,11 @@ produce an ordered plan to visit every described page/feature.
    Do NOT reorder steps to "observe" the effect of destructive actions on state.
    The Spec Checker verifies each page's structure and content independently.
 3. Mark pages that require authentication
-4. Each step must specify HOW to reach it from the previous state
+4. `how_to_reach` — STRICT RULES:
+   a. Must specify how to reach this page FROM THE PREVIOUS STEP'S STATE. Do not include redundant instructions (e.g., do not say "log in" if the previous step already required authentication).
+   b. Describe how to navigate using VISUAL interactions (e.g., "click the 'Security Settings' link in the sidebar").
+   c. IMPORTANT: NEVER invent or hallucinate exact URLs (like /settings or /dashboard) unless they are explicitly written in the specification. THIS IS CRITICAL to avoid 404s.
+   d. Rely on clicking links, opening menus, and interacting with the UI. Do not guess routes.
 5. `interactions_needed` — STRICT RULES:
    a. Leave empty ("") in the vast majority of cases. Assume the app has seed/test data.
    b. Only populate if a SINGLE, MINIMAL navigation action is needed to set up state
@@ -74,6 +78,9 @@ PROMPT_TRAVERSAL_PLANNER_USER = """\
 ## Functional Specification
 {spec_text}
 
+## Global Context (Navigation structure)
+{global_context}
+
 ## Credentials
 {credentials_info}
 
@@ -100,8 +107,13 @@ A traversal step failed. Suggest an alternative approach.
 ## Page Content
 {page_content}
 
+## Global Context (Navigation structure)
+{global_context}
+
 ## Remaining Sections
 {remaining_sections}
+
+IMPORTANT: DO NOT guess or hallucinate URLs for the new approach. Rely on clicking visible links, buttons, and menus provided in the page content. THIS IS CRITICAL to avoid 404 errors.
 
 Respond with ONLY valid JSON:
 {{
@@ -134,10 +146,16 @@ the NEXT planned step is still valid given the current page state.
 - **Prerequisites:** {next_prerequisites}
 - **Interactions needed:** {next_interactions}
 
+## Global Context (Navigation structure)
+{global_context}
+
 ## Remaining Sections
 {remaining_sections}
 
 Decide whether the next step is still valid. If not, suggest adjustments.
+
+IMPORTANT — AVOID REDUNDANT AUTHENTICATION:
+If the next step requires an authenticated session AND the current page shows the user is ALREADY logged in (e.g., a "Log Out" button, dashboard, or user profile is visible), DO NOT instruct the agent to log out and log back in. Just proceed from the current state.
 
 IMPORTANT — for "action" page types, also check OBSERVABLE STATE:
 An action step (e.g. "Reset App State", "Logout", "Delete") is verified by
@@ -150,6 +168,8 @@ inconclusive (no diff = can't confirm anything worked).
   (e.g. "Click 'Add to cart' on the first product to add an item to the cart").
 - Example: "Logout" spec says it ends the session. If the user is already
   logged out, set prerequisite_actions to log in first.
+
+IMPORTANT: DO NOT guess or hallucinate URLs for the new approach. Rely on clicking visible links, buttons, and menus provided in the page content. THIS IS CRITICAL to avoid 404 errors.
 
 Respond with ONLY valid JSON:
 {{
@@ -248,6 +268,7 @@ target="_blank" links). When this happens:
 5. NEVER click return-navigation links ("Back", "Cancel", "Home", etc.)
    unless the goal explicitly asks for it
 6. If multiple tabs are open and one is irrelevant, ALWAYS close it first
+7. IMPORTANT: Use navigate_to ONLY for returning to the exact base_url or if an exact URL is explicitly demanded. NEVER guess or hallucinate URLs. ALWAYS prefer clicking visible elements in the provided selector map to navigate. THIS IS CRITICAL to avoid 404s.
 
 # Response Format
 {

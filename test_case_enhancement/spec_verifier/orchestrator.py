@@ -176,6 +176,7 @@ class TraversalOrchestrator:
             all_sections=all_sections,
             base_url=self.base_url,
             credentials_info=credentials_info,
+            global_context=self.global_context,
         )
         self._log(f"\nPlan reasoning: {plan.reasoning}")
         self._log(f"Total steps: {len(plan.steps)}")
@@ -993,6 +994,7 @@ class TraversalOrchestrator:
             page_content=page_content,
             next_step=next_step,
             remaining_sections=remaining,
+            global_context=self.global_context,
         )
 
         if not advice:
@@ -1053,9 +1055,9 @@ class TraversalOrchestrator:
                 failed_step=step,
                 failure_reason="Navigation actions did not reach the target page.",
                 current_url=current_url,
-                current_title=current_title,
                 page_content=page_content,
                 remaining_sections=remaining,
+                global_context=self.global_context,
             )
 
             if not replan_data or not replan_data.get("can_reach", False):
@@ -1388,7 +1390,12 @@ class TraversalOrchestrator:
         kwargs = {}
         if self.skip_sections is not None:
             kwargs["skip_sections"] = self.skip_sections
-        return self.parser.parse(text, **kwargs)
+        sections, skipped_sections = self.parser.parse(text, **kwargs)
+
+        self.global_context = "\n\n".join(
+            f"### {s.name}\n{s.raw_text}" for s in skipped_sections
+        )
+        return sections
 
     def _load_credentials(self) -> None:
         self._log("\n--- Credentials ---")

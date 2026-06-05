@@ -84,6 +84,7 @@ class TraversalPlannerAgent:
         all_sections: List[SpecSection],
         base_url: str,
         credentials_info: str = "No credentials available.",
+        global_context: str = "",
     ) -> TraversalPlan:
         """
         Generate the initial traversal plan from the full functional spec.
@@ -103,6 +104,7 @@ class TraversalPlannerAgent:
 
         prompt = PROMPT_TRAVERSAL_PLANNER_USER.format(
             spec_text=spec_text,
+            global_context=global_context,
             credentials_info=credentials_info,
             base_url=base_url,
         )
@@ -126,6 +128,7 @@ class TraversalPlannerAgent:
         current_title: str,
         page_content: str,
         remaining_sections: List[SpecSection],
+        global_context: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         Ask the LLM to suggest an alternative approach for a failed step.
@@ -146,6 +149,7 @@ class TraversalPlannerAgent:
             current_title=current_title,
             page_content=page_content[:6000],
             remaining_sections=remaining_text,
+            global_context=global_context,
         )
 
         try:
@@ -166,6 +170,7 @@ class TraversalPlannerAgent:
         page_content: str,
         next_step: 'TraversalStep',
         remaining_sections: List[SpecSection],
+        global_context: str = "",
     ) -> Optional[Dict[str, Any]]:
         """
         Lightweight adaptive check between steps.
@@ -197,6 +202,7 @@ class TraversalPlannerAgent:
             next_prerequisites=", ".join(next_step.prerequisites) or "none",
             next_interactions=next_step.interactions_needed or "none",
             remaining_sections=remaining_text,
+            global_context=global_context,
         )
 
         try:

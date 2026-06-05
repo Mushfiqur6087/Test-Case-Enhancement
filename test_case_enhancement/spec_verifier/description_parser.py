@@ -9,7 +9,7 @@ the real URL for each section by navigating the live application.
 """
 
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from test_case_enhancement.core.models import SpecSection
 
@@ -39,9 +39,9 @@ class DescriptionParser:
         self,
         markdown_text: str,
         skip_sections: Optional[List[str]] = None,
-    ) -> List[SpecSection]:
+    ) -> Tuple[List[SpecSection], List[SpecSection]]:
         """
-        Parse markdown text into a list of SpecSections.
+        Parse markdown text into a list of SpecSections and a list of skipped sections.
 
         Parameters
         ----------
@@ -53,7 +53,8 @@ class DescriptionParser:
 
         Returns
         -------
-        list[SpecSection]
+        Tuple[List[SpecSection], List[SpecSection]]
+            (verified_sections, skipped_sections)
         """
         if skip_sections is None:
             skip_set = {"navigation"}
@@ -61,6 +62,7 @@ class DescriptionParser:
             skip_set = {s.lower().strip() for s in skip_sections}
 
         sections: List[SpecSection] = []
+        skipped_sections: List[SpecSection] = []
 
         # Split on ## headings (h2 level only — ignore h1)
         pattern = re.compile(r"^## (.+)$", re.MULTILINE)
@@ -69,9 +71,6 @@ class DescriptionParser:
         for i, match in enumerate(matches):
             heading = match.group(1).strip()
 
-            if heading.lower().strip() in skip_set:
-                continue
-
             # Grab body text (from just after this heading to the next heading)
             body_start = match.end()
             body_end = (
@@ -79,6 +78,10 @@ class DescriptionParser:
             )
             body = markdown_text[body_start:body_end].strip()
 
+            if heading.lower().strip() in skip_set:
+                skipped_sections.append(SpecSection(name=heading, raw_text=body))
+                continue
+
             sections.append(SpecSection(name=heading, raw_text=body))
 
-        return sections
+        return sections, skipped_sections
