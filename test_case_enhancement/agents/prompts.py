@@ -22,11 +22,11 @@ produce an ordered plan to visit every described page/feature.
 - **form_gateway**: Form page that must be filled and submitted to proceed (e.g., login, registration, data entry).
   `how_to_reach` = navigation ONLY — do NOT include form filling or submission there.
   Put form actions in `interactions_needed`; the system handles submission separately.
-- **listing**: Page displaying a collection of items or records (e.g., accounts list, user directory, dashboard).
-- **detail**: Single-item view reached by clicking from a listing (e.g., account details, user profile).
+- **listing**: Page displaying a collection of items or records (e.g., data grid, user directory, dashboard).
+- **detail**: Single-item view reached by clicking from a listing (e.g., item details, user profile).
 - **overlay**: UI element revealed by a toggle (e.g., side navigation menu, modal dialog). Verified on top of existing page.
 - **action**: In-page action with no full navigation (e.g., logout, delete, reset state). Click a link/button.
-- **summary**: Read-only summary or review page (e.g., transaction summary, order review).
+- **summary**: Read-only summary or review page (e.g., submission summary, data review).
 - **confirmation**: Terminal page confirming a completed action (e.g., success message, submission receipt).
 
 # Rules
@@ -39,16 +39,16 @@ produce an ordered plan to visit every described page/feature.
 3. Mark pages that require authentication
 4. `how_to_reach` — STRICT RULES:
    a. Must specify how to reach this page FROM THE PREVIOUS STEP'S STATE. Do not include redundant instructions (e.g., do not say "log in" if the previous step already required authentication).
-   b. Describe how to navigate using VISUAL interactions (e.g., "click the 'Security Settings' link in the sidebar").
+   b. Describe how to navigate using VISUAL interactions (e.g., "click the 'Settings' link in the sidebar").
    c. IMPORTANT: NEVER invent or hallucinate exact URLs (like /settings or /dashboard) unless they are explicitly written in the specification. THIS IS CRITICAL to avoid 404s.
    d. Rely on clicking links, opening menus, and interacting with the UI. Do not guess routes.
 5. `interactions_needed` — STRICT RULES:
    a. Leave empty ("") in the vast majority of cases. Assume the app has seed/test data.
    b. Only populate if a SINGLE, MINIMAL navigation action is needed to set up state
-      for a LATER step (e.g., "Click the first account row to open its detail view").
+      for a LATER step (e.g., "Click the first data row to open its detail view").
    c. NEVER include form fills, form submissions, or multi-step sequences.
       Form submission on form_gateway pages is handled automatically by the system.
-   d. NEVER invent data-creation flows (e.g., "submit this form twice to create accounts").
+   d. NEVER invent data-creation flows (e.g., "submit this form twice to create records").
       Trust that the application already has the data downstream steps need.
    e. If in doubt, leave it empty — the system handles missing state gracefully.
 
@@ -162,10 +162,10 @@ An action step (e.g. "Reset App State", "Logout", "Delete") is verified by
 comparing state BEFORE vs AFTER the action. If the observable state that the
 spec says should change does not exist yet, the verification will be
 inconclusive (no diff = can't confirm anything worked).
-- Example: "Reset App State" spec says it clears the cart. If the cart is
+- Example: "Clear Workspace" spec says it removes all active items. If the workspace is
   currently empty, the before/after states will be identical → PARTIAL score.
   Set prerequisite_actions to establish the required state first
-  (e.g. "Click 'Add to cart' on the first product to add an item to the cart").
+  (e.g. "Click 'Add Item' on the first record to populate the workspace").
 - Example: "Logout" spec says it ends the session. If the user is already
   logged out, set prerequisite_actions to log in first.
 

@@ -26,7 +26,7 @@ not a static page snapshot. Apply these rules instead:
 - For redirect actions (e.g. Logout → login page): the AFTER URL must differ
   from the BEFORE URL as the spec requires. This IS verifiable — do NOT
   exclude it under the static DOM limitation.
-- For in-page state changes (e.g. cart reset): confirm the BEFORE state had
+- For in-page state changes (e.g. clearing a data table): confirm the BEFORE state had
   observable data (badge, items) and the AFTER state shows it cleared.
 - Score ≥ 75 if the described state transition is evident in before/after data.
 - Score < 40 if before and after states are identical (action had no effect).
