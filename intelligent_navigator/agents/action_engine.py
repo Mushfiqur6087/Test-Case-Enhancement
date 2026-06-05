@@ -38,7 +38,7 @@ from intelligent_navigator.agents.prompts import (
 
 
 # Max LLM-driven steps per goal to prevent infinite loops
-_MAX_STEPS_PER_GOAL = 8
+_MAX_STEPS_PER_GOAL = 4
 # Max characters of selector map to send to LLM
 _MAX_SELECTOR_MAP_CHARS = 12_000
 
@@ -108,6 +108,7 @@ class ActionEngine:
         self,
         goal: str,
         extra_context: str = "",
+        max_steps: int = 0,
     ) -> ActionResult:
         """
         Execute a goal on the current page.
@@ -121,11 +122,16 @@ class ActionEngine:
                           - "Add the first product to the cart"
                           - "Click the hamburger menu button to open the navigation panel"
         extra_context : Additional context for the LLM (e.g., credentials info)
+        max_steps     : Maximum LLM-driven steps for this goal. 0 = use default
+                        (_MAX_STEPS_PER_GOAL). Callers can pass a tighter budget
+                        for simple goals to prevent runaway loops.
 
         Returns
         -------
         ActionResult with success status and page state.
         """
+        step_limit = max_steps if max_steps > 0 else _MAX_STEPS_PER_GOAL
+
         log(
             f"  [ActionEngine] Goal: {goal[:120]}",
             self.debug, self.debug_file,
@@ -134,7 +140,7 @@ class ActionEngine:
         step_history: List[Dict[str, Any]] = []
         total_actions = 0
 
-        for step_num in range(1, _MAX_STEPS_PER_GOAL + 1):
+        for step_num in range(1, step_limit + 1):
             # 1. Dismiss overlays first
             self._dismiss_overlays()
 
@@ -252,9 +258,9 @@ class ActionEngine:
             success=False,
             current_url=current_url,
             current_title=current_title,
-            failure_reason=f"Goal not achieved after {_MAX_STEPS_PER_GOAL} steps",
+            failure_reason=f"Goal not achieved after {step_limit} steps",
             actions_taken=total_actions,
-            steps_used=_MAX_STEPS_PER_GOAL,
+            steps_used=step_limit,
         )
 
     def navigate_to_url(self, url: str) -> ActionResult:
@@ -326,6 +332,7 @@ class ActionEngine:
         """Execute a list of browser actions using the BrowserController."""
         action_handlers = {
             "click_element":    self._handle_click_element,
+            "navigate_to":      self._handle_navigate_to,
             "input_text":       self._handle_input_text,
             "scroll_down":      self._handle_scroll_down,
             "scroll_up":        self._handle_scroll_up,
@@ -390,6 +397,14 @@ class ActionEngine:
     def _handle_scroll_up(self, params: Dict[str, Any]) -> bool:
         amount = params.get("amount", 500)
         self.browser_controller.execute_command("scroll_up", int(amount))
+        return True
+
+    def _handle_navigate_to(self, params: Dict[str, Any]) -> bool:
+        url = params.get("url", "")
+        if not url:
+            return False
+        self.browser_controller.execute_command("navigate_to", url)
+        wait_for_page(self.browser_session)
         return True
 
     def _handle_go_back(self, params: Dict[str, Any]) -> bool:
@@ -457,6 +472,7 @@ class ActionEngine:
     # Dispatch table for formatting action records in step history
     _action_formatters = {
         "click_element":    lambda p: f"clicked element #{p.get('index')}",
+        "navigate_to":      lambda p: f"navigated to '{p.get('url', '')}'",
         "input_text":       lambda p: f"typed '{p.get('text', '')}' into #{p.get('index')}",
         "scroll_down":      lambda p: f"scrolled down {p.get('amount', 500)}px",
         "scroll_up":        lambda p: f"scrolled up {p.get('amount', 500)}px",

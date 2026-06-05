@@ -5,19 +5,19 @@
 | **URL** | https://www.saucedemo.com/ |
 | **Spec file** | `datasets/swaglabs/SwagLabs,md` |
 | **Date** | 2026-06-05 |
-| **Overall score** | **94 / 100** |
+| **Overall score** | **84 / 100** |
 
 ## Summary
 
 | Verdict | Count |
 |---------|-------|
-| ✅ Pass    | 10 |
-| ⚠️  Partial | 0 |
-| ❌ Fail    | 0 |
+| ✅ Pass    | 8 |
+| ⚠️  Partial | 1 |
+| ❌ Fail    | 1 |
 | ⏭️  Skipped | 0 |
 | **Total** | **10** |
 
-LLM calls used: 69
+LLM calls used: 44
 
 ---
 
@@ -28,51 +28,48 @@ LLM calls used: 69
 **Page visited:** `https://www.saucedemo.com/` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Username input field (placeholder='Username', id='user-name', data-test='username')
-- Password input field (placeholder='Password', id='password', data-test='password')
-- Login button (input type='submit' value='Login', id='login-button', data-test='login-button')
-- Accepted usernames list visible (standard_user, locked_out_user, problem_user, performance_glitch_user, error_user, visual_user)
-- Shared password text visible ('secret_sauce')
-- Page title text 'Swag Labs' visible
+- Username input field with placeholder 'Username'
+- Password input field with placeholder 'Password'
+- Login button (input type=submit, value 'Login')
+- Accepted usernames list includes required test users
+- Password hint shows shared secret 'secret_sauce'
 
-*All required static UI elements from the Login spec are present in the DOM snapshot. Dynamic behaviors (authentication, redirects, and error banner messages) cannot be verified from a static snapshot and were not evaluated.*
+*All required static login elements are present: username, password, login button, listed test usernames, and shared password. Dynamic behaviors (authentication, redirects, error banners) were not verified per instructions.*
 
 ---
 
-### ✅ Product Inventory — PASS (95/100)
+### ✅ Product Inventory — PASS (90/100)
 
 **Page visited:** `https://www.saucedemo.com/inventory.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Page header/title 'Swag Labs' present
-- Sort dropdown (select[data-test='product-sort-container']) with options: Name (A to Z), Name (Z to A), Price (low to high), Price (high to low)
-- Product image links (anchors id='item_*_img_link') present for each product
-- Product title links (anchors id='item_*_title_link') present for each product
-- Product names (div[data-test='inventory-item-name']) present for each product
-- Product images (img elements with alt text for each product) present
-- Product descriptions visible in page text for each product
-- Product prices visible in page text ($29.99, $9.99, $15.99, $49.99, $7.99, $15.99)
-- Add to cart buttons present for each product (buttons with data-test='add-to-cart-*')
-- Shopping cart link present (a[data-test='shopping-cart-link'])
+- product names present for all listed items
+- product descriptions visible under each product name
+- prices displayed for each product (e.g. $29.99)
+- 'Add to cart' buttons present for every product
+- sort dropdown includes name and price options
+- product title links exist (clickable anchors)
+- product image links exist (clickable anchors)
+- shopping cart link/button present in DOM
 
-*All static UI elements required by the Product Inventory spec (product name, image, description, price, add-to-cart buttons, and sort dropdown with specified options, plus clickable title/image links) are present in the DOM snapshot. Dynamic behaviors (button text toggling to 'Remove', cart badge count updates, and navigation after clicks) cannot be verified from the static snapshot and were not evaluated.*
+*The Inventory page contains the required product list, names, descriptions, prices, 'Add to cart' buttons, sort control, and links for product images/titles. Dynamic behaviors (button toggling and cart badge updates) cannot be verified from the static DOM and were omitted per instructions.*
 
 ---
 
-### ✅ Product Detail — PASS (90/100)
+### ✅ Product Detail — PASS (95/100)
 
 **Page visited:** `https://www.saucedemo.com/inventory-item.html?id=4` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Product image (img element present)
-- Product name text ('Sauce Labs Backpack' visible)
-- Product description text visible
-- Product price text ('$29.99' visible)
-- Add to cart button (button data-test='add-to-cart' inner_text='Add to cart')
-- Back to products button (button data-test='back-to-products')
-- Shopping cart link/icon (a data-test='shopping-cart-link')
+- Product image is present
+- Product name 'Sauce Labs Backpack'
+- Product description visible
+- Price displayed as '$29.99'
+- Remove button shown (reflects cart state)
+- Back to products button present
+- Cart icon with item count '1' present
 
-*All required static elements from the Product Detail spec are present in the DOM snapshot. Dynamic behavior (e.g., button toggling to 'Remove' based on cart state) cannot be verified from a static snapshot.*
+*All required static Product Detail elements (image, name, description, price, cart-state button, back navigation, cart icon) are present and match the spec. URL and page content correspond to the product detail page.*
 
 ---
 
@@ -81,31 +78,33 @@ LLM calls used: 69
 **Page visited:** `https://www.saucedemo.com/cart.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Cart count '1' (data-test='shopping-cart-link')
-- Item name 'Sauce Labs Backpack' (data-test='item-4-title-link' and data-test='inventory-item-name')
-- Quantity displayed as '1' (visible page text under QTY)
-- Item description text present (visible page text 'carry.allTheThings() ...')
-- Remove button for item (data-test='remove-sauce-labs-backpack', id='remove-sauce-labs-backpack')
-- Continue Shopping button (data-test='continue-shopping', id='continue-shopping')
-- Checkout button (data-test='checkout', id='checkout')
+- Heading 'Your Cart' present
+- Quantity displayed as '1'
+- Product name 'Sauce Labs Backpack' listed
+- Item description 'carry.allTheThings()...' present
+- Price '$29.99' visible
+- 'Remove' button for the item present
+- 'Continue Shopping' button present
+- 'Checkout' button present
 
-*The static DOM contains the cart item with quantity '1', description, a per-item Remove button, and both Continue Shopping and Checkout buttons. Dynamic behaviors (navigation/redirects or runtime validation) cannot be verified from a static snapshot.*
+*All static UI elements required by the Shopping Cart spec (quantity, description, product, Remove button, Continue Shopping, Checkout) are present on the page.*
 
 ---
 
-### ✅ Checkout - Information — PASS (90/100)
+### ✅ Checkout - Information — PASS (95/100)
 
 **Page visited:** `https://www.saucedemo.com/checkout-step-one.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Page heading 'Checkout: Your Information' visible
-- First Name input (input#first-name, placeholder='First Name', data-test='firstName')
-- Last Name input (input#last-name, placeholder='Last Name', data-test='lastName')
-- Zip/Postal Code input (input#postal-code, placeholder='Zip/Postal Code', data-test='postalCode')
-- Cancel button (button#cancel, data-test='cancel', inner_text='Cancel')
-- Continue button (input[type='submit'] data-test='continue', value='Continue')
+- Heading 'Checkout: Your Information' present
+- First Name input field (placeholder 'First Name')
+- Last Name input field (placeholder 'Last Name')
+- Zip/Postal Code input field (placeholder 'Zip/Postal Code')
+- Continue submit control with value 'Continue'
+- Cancel button with inner_text 'Cancel'
+- URL indicates checkout-step-one.html (correct step)
 
-*The static DOM includes the required fields and Cancel/Continue controls per the spec. Dynamic behaviors (validation, navigation, and error banners) cannot be verified from a static snapshot and were not checked.*
+*The page includes the required fields, Cancel and Continue controls, and correct checkout heading/URL. Dynamic behaviors (validation messages, navigation on click) are not verifiable from the static DOM snapshot.*
 
 ---
 
@@ -114,17 +113,18 @@ LLM calls used: 69
 **Page visited:** `https://www.saucedemo.com/checkout-step-two.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Page header 'Checkout: Overview'
-- Cart item name 'Sauce Labs Backpack' (item link and name element present)
-- Quantity '1' displayed
+- Page heading 'Checkout: Overview' visible
+- Cart item 'Sauce Labs Backpack' listed
+- Quantity '1' shown for the item
+- Item description text present
 - Item price '$29.99' displayed
-- Totals section with 'Item total: $29.99', 'Tax: $2.40', 'Total: $32.39'
-- Payment Information text 'SauceCard #31337'
-- Shipping Information text 'Free Pony Express Delivery!'
-- Cancel button (data-test='cancel', id='cancel')
-- Finish button (data-test='finish', id='finish')
+- Payment Information 'SauceCard #31337' present
+- Shipping Information 'Free Pony Express Delivery!' present
+- Totals: Item total $29.99, Tax $2.40, Total $32.39
+- Cancel button present
+- Finish button present
 
-*All required static elements from the Checkout - Overview spec are present in the DOM snapshot. Dynamic behaviors (e.g., that Finish navigates to confirmation or Cancel exits) cannot be verified from a static snapshot.*
+*The page contains the required overview elements (order summary, payment/shipping info, totals, Cancel and Finish). Dynamic behaviors (navigation on Finish/Cancel) are not verifiable from the static DOM and were not checked.*
 
 ---
 
@@ -133,54 +133,72 @@ LLM calls used: 69
 **Page visited:** `https://www.saucedemo.com/checkout-complete.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Success heading text 'Thank you for your order!' present
-- Confirmation subtext 'Your order has been dispatched, and will arrive just as fast as the pony can get there!' present
-- Back Home button present (button id='back-to-products', data-test='back-to-products', inner_text='Back Home')
+- Page shows 'Thank you for your order!' message
+- Heading 'Checkout: Complete!' visible near top
+- 'Back Home' button present with data-test attribute
+- URL path is checkout-complete.html indicating confirmation page
+- Social links present (Twitter, Facebook, LinkedIn)
 
-*The required success message and Back Home button are present in the static DOM. Redirecting to Product Inventory and clearing the cart are dynamic behaviors and cannot be verified from a static snapshot.*
+*Confirmation message and Back Home button are present and page URL/title align with the spec. Dynamic behavior (returning to inventory and clearing the cart) cannot be verified from the static snapshot.*
 
 ---
 
-### ✅ Navigation Menu — PASS (95/100)
+### ✅ Navigation Menu — PASS (100/100)
 
 **Page visited:** `https://www.saucedemo.com/inventory.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- hamburger menu button (id='react-burger-menu-btn', inner_text='Open Menu')
-- All Items link (id='inventory_sidebar_link', inner_text='All Items')
-- About link (id='about_sidebar_link', inner_text='About', href='https://saucelabs.com/')
-- Logout link (id='logout_sidebar_link', inner_text='Logout')
-- Reset App State link (id='reset_sidebar_link', inner_text='Reset App State')
-- close menu button (id='react-burger-cross-btn', inner_text='Close Menu')
+- Hamburger menu button (Open Menu) present
+- All Items link in side panel present
+- About link in side panel present
+- Logout link in side panel present
+- Reset App State link in side panel present
+- Close (X) button to close menu present
 
-*All required navigation menu elements (hamburger button, menu links: All Items, About, Logout, Reset App State, and the close/X button) are present in the DOM. Dynamic behavior (opening/closing) cannot be verified from a static snapshot.*
+*All required navigation actions and both open/close controls are present in the DOM and visible text; page URL/title do not contradict the section.*
 
 ---
 
-### ✅ Logout — PASS (90/100)
+### ❌ Logout — FAIL (20/100)
 
 **Page visited:** `https://www.saucedemo.com/inventory.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- Logout link present in sidebar (a#logout_sidebar_link, data-test='logout-sidebar-link', inner_text='Logout')
-- Menu open button present (button#react-burger-menu-btn, inner_text='Open Menu')
-- Menu close button present (button#react-burger-cross-btn, inner_text='Close Menu')
-- Sidebar contains expected navigation items (All Items, About, Reset App State alongside Logout)
+- Logout link present in the menu
+- Inventory/Products page and heading visible
+- Multiple 'Add to cart' buttons present
+- Shopping cart link present in DOM
+- Social links (Twitter, Facebook, LinkedIn) present
 
-*The DOM shows a Logout link in the app menu and the menu controls, satisfying the static UI requirement. Runtime behavior required by the spec (ending session and redirecting/protecting pages) cannot be verified from a static DOM snapshot.*
+**✘ Missing (spec says it should exist, not found in DOM):**
+- Login page or login form (username/password) after logout
+- Redirect to login page after performing Logout
+
+**⚡ Mismatches (DOM contradicts the spec):**
+- URL remains https://www.saucedemo.com/inventory.html after Logout
+- Page title remains 'Swag Labs' (inventory) instead of login
+- Inventory contents still visible after Logout instead of blocking access
+
+*The Logout action did not return the user to the login page — the app remains on the protected inventory page and the login form/URL redirect are not present.*
 
 ---
 
-### ✅ Reset App State — PASS (90/100)
+### ⚠️ Reset App State — PARTIAL (60/100)
 
 **Page visited:** `https://www.saucedemo.com/inventory.html` — *Swag Labs*
 
 **✔ Matches (spec requirements found in live UI):**
-- 'Reset App State' sidebar link present (id='reset_sidebar_link', data-test='reset-sidebar-link')
-- Menu open button present (id='react-burger-menu-btn')
-- Menu close button present (id='react-burger-cross-btn')
-- Shopping cart link present (data-test='shopping-cart-link')
+- Reset App State menu item present
+- Page remains on inventory page after action
+- Logout link present (user still logged in)
+- All 'Add to cart' buttons present and labeled
+- Shopping cart link element present
 
-*The DOM includes the 'Reset App State' menu item and menu controls required by the spec. Behavior (that it actually clears the cart and preserves login) cannot be verified from a static snapshot.*
+**✘ Missing (spec says it should exist, not found in DOM):**
+- Visible cart badge/count showing item number
+- Explicit evidence cart contents were cleared
+- Change in any add/remove button states (no 'Remove' seen before or after)
+
+*The Reset App State control is present and invoking it did not log the user out (Logout link remains). However there is no static evidence in the DOM/text that the cart badge/count or prior add/remove button states changed, so complete behavior cannot be verified.*
 
 ---

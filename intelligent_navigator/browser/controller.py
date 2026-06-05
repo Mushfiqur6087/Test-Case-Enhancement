@@ -2,6 +2,7 @@
 
 from typing import Optional, Dict, Any, Union, List
 
+from intelligent_navigator.browser.css_utils import css_id_selector
 from intelligent_navigator.browser.session import BrowserSession
 
 
@@ -65,7 +66,7 @@ class BrowserController:
             # ---- click with overlay-dismiss fallback ----
             try:
                 if (elem_id := attrs.get("id")):
-                    page.click(f"#{elem_id}", timeout=5000)
+                    page.click(css_id_selector(elem_id), timeout=5000)
                 else:
                     page.locator(f"xpath={xpath}").click(timeout=5000)
             except Exception:
@@ -78,7 +79,7 @@ class BrowserController:
                     pass
                 try:
                     if (elem_id := attrs.get("id")):
-                        page.click(f"#{elem_id}", timeout=5000, force=True)
+                        page.click(css_id_selector(elem_id), timeout=5000, force=True)
                     else:
                         page.locator(f"xpath={xpath}").click(timeout=5000, force=True)
                 except Exception as e2:
@@ -128,7 +129,7 @@ class BrowserController:
             # ---- fill with overlay-dismiss fallback ----
             try:
                 if (elem_id := attrs.get("id")):
-                    page.fill(f"#{elem_id}", text, timeout=5000)
+                    page.fill(css_id_selector(elem_id), text, timeout=5000)
                 else:
                     page.locator(f"xpath={xpath}").fill(text, timeout=5000)
             except Exception:
@@ -139,7 +140,7 @@ class BrowserController:
                     pass
                 try:
                     if (elem_id := attrs.get("id")):
-                        page.fill(f"#{elem_id}", text, timeout=5000)
+                        page.fill(css_id_selector(elem_id), text, timeout=5000)
                     else:
                         page.locator(f"xpath={xpath}").fill(text, timeout=5000)
                 except Exception as e2:
@@ -199,7 +200,7 @@ class BrowserController:
 
             try:
                 if (elem_id := attrs.get("id")):
-                    page.hover(f"#{elem_id}", timeout=5000)
+                    page.hover(css_id_selector(elem_id), timeout=5000)
                 else:
                     page.locator(f"xpath={xpath}").hover(timeout=5000)
             except Exception:
@@ -210,7 +211,7 @@ class BrowserController:
                     pass
                 try:
                     if (elem_id := attrs.get("id")):
-                        page.hover(f"#{elem_id}", timeout=5000, force=True)
+                        page.hover(css_id_selector(elem_id), timeout=5000, force=True)
                     else:
                         page.locator(f"xpath={xpath}").hover(timeout=5000, force=True)
                 except Exception as e2:
@@ -243,7 +244,7 @@ class BrowserController:
             attrs = element.attributes or {}
 
             if (elem_id := attrs.get("id")):
-                locator = page.locator(f"#{elem_id}")
+                locator = page.locator(css_id_selector(elem_id))
             else:
                 locator = page.locator(f"xpath={xpath}")
 
@@ -309,7 +310,7 @@ class BrowserController:
             attrs = element.attributes or {}
 
             if (elem_id := attrs.get("id")):
-                page.fill(f"#{elem_id}", "", timeout=5000)
+                page.fill(css_id_selector(elem_id), "", timeout=5000)
             else:
                 page.locator(f"xpath={xpath}").fill("", timeout=5000)
 

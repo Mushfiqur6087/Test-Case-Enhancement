@@ -51,6 +51,7 @@ from intelligent_navigator.spec_verifier import report as report_module
 
 # ---- Constants ----
 _MAX_REPLAN_ATTEMPTS = 2   # max times to replan a single failed step
+_LOW_SCORE_THRESHOLD = 50  # scores below this trigger remediation + re-verification
 _ACTION_SECTION_KEYWORDS = ["logout", "reset", "sign out", "log out"]
 
 
@@ -328,36 +329,42 @@ class TraversalOrchestrator:
             return None
 
         # ---- CHECK: Are we already on the target page? ----
-        current_url = get_current_url(self.browser_session)
-        current_title = get_current_title(self.browser_session)
-        page_content = self._get_combined_page_content()
+        # Skip this optimization for overlay/action steps — their trigger
+        # element exists on the parent page, so PageIdentifier falsely matches.
+        # These steps ALWAYS need how_to_reach executed (e.g., click hamburger).
+        if step.page_type not in ("overlay", "action"):
+            current_url = get_current_url(self.browser_session)
+            current_title = get_current_title(self.browser_session)
+            page_content = self._get_combined_page_content()
 
-        unvisited = [
-            section_map[n] for n in section_map
-            if n not in results
-        ]
+            unvisited = [
+                section_map[n] for n in section_map
+                if n not in results
+            ]
 
-        matched_section, confidence = self.page_identifier.identify(
-            current_url=current_url,
-            current_title=current_title,
-            page_content=page_content,
-            all_sections=unvisited,
-        )
-
-        if matched_section == step.target_section and confidence >= 70:
-            self._log(
-                f"    Already on target page '{step.target_section}' "
-                f"[{confidence}%] — skipping navigation."
-            )
-            result = self._verify_section(
-                section=section,
+            matched_section, confidence = self.page_identifier.identify(
                 current_url=current_url,
                 current_title=current_title,
                 page_content=page_content,
+                all_sections=unvisited,
             )
-            # Run post-verification interactions even when we skipped nav
-            self._run_post_verify_interactions(step)
-            return result
+
+            if matched_section == step.target_section and confidence >= 70:
+                self._log(
+                    f"    Already on target page '{step.target_section}' "
+                    f"[{confidence}%] — skipping navigation."
+                )
+                result = self._verify_section(
+                    section=section,
+                    current_url=current_url,
+                    current_title=current_title,
+                    page_content=page_content,
+                )
+                # Self-correction: remediate if score is low
+                result = self._try_remediate_and_reverify(result, section, step)
+                # Run post-verification interactions even when we skipped nav
+                self._run_post_verify_interactions(step)
+                return result
 
         # ---- FORM GATEWAY: Two-phase approach ----
         if step.page_type == "form_gateway":
@@ -371,6 +378,19 @@ class TraversalOrchestrator:
         # ---- NORMAL STEP: Navigate → Identify → Verify → Interact ----
         goal = self._build_goal(step, section_map, results)
         extra_context = self._build_extra_context(step)
+
+        # ---- ACTION STEPS: Capture before/after state for transition verification ----
+        # Action-type specs describe STATE TRANSITIONS ("clears the cart",
+        # "ends the session"). The checker can't verify a transition from a
+        # single snapshot — it needs the before AND after state to reason
+        # about what changed. This is generic: works for any app, any action.
+        if step.page_type == "action":
+            return self._execute_action_step_with_snapshots(
+                step=step,
+                section=section,
+                goal=goal,
+                extra_context=extra_context,
+            )
 
         pre_nav_url = get_current_url(self.browser_session)
         action_result = self.action_engine.execute_goal(
@@ -388,8 +408,9 @@ class TraversalOrchestrator:
         # goal_achieved prematurely (saw filled form fields, assumed the next
         # click would navigate, but didn't wait for the actual page transition).
         # Retry once so the ActionEngine can observe the true page state.
+        # Skip for overlay types where URL intentionally stays the same.
         post_nav_url = get_current_url(self.browser_session)
-        if post_nav_url == pre_nav_url:
+        if post_nav_url == pre_nav_url and step.page_type not in ("overlay",):
             self._log(
                 f"    [Nav] URL unchanged after action — retrying navigation"
             )
@@ -415,6 +436,8 @@ class TraversalOrchestrator:
         # but BEFORE the next step so prerequisites (e.g., "items in cart")
         # are satisfied. The planner already specified what to do on each page.
         if result:
+            # Self-correction: remediate if score is low
+            result = self._try_remediate_and_reverify(result, section, step)
             self._run_post_verify_interactions(step)
 
         return result
@@ -495,6 +518,97 @@ class TraversalOrchestrator:
 
         return result
 
+    def _execute_action_step_with_snapshots(
+        self,
+        step: TraversalStep,
+        section: SpecSection,
+        goal: str,
+        extra_context: str,
+    ) -> Optional[SectionVerificationResult]:
+        """
+        Execute an action-type step with before/after state snapshots.
+
+        Action-type specs (Reset App State, Logout, Delete Account, etc.)
+        describe STATE TRANSITIONS — what changes when the action is performed.
+        A single page snapshot is insufficient for verifying transitions because
+        the checker can't know what the state was *before* the action.
+
+        This method:
+          1. Captures the full page state BEFORE the action
+          2. Executes the action via ActionEngine
+          3. Captures the full page state AFTER the action
+          4. Builds a combined before/after context string
+          5. Passes both states to the checker so it can reason about the diff
+
+        This is completely generic — works for any app, any action type.
+        The LLM naturally understands before/after state comparisons.
+        """
+        # 1. Capture BEFORE state
+        before_url = get_current_url(self.browser_session)
+        before_title = get_current_title(self.browser_session)
+        before_content = self._get_combined_page_content()
+
+        self._log(
+            f"    [Action] Capturing before-state: {before_title} ({before_url})"
+        )
+
+        # 2. Execute the action
+        action_result = self.action_engine.execute_goal(
+            goal=goal,
+            extra_context=extra_context,
+        )
+
+        if not action_result.success:
+            self._log(
+                f"    Action failed: {action_result.failure_reason[:120]}"
+            )
+            return None
+
+        self._log(
+            f"    [Action] Action completed → "
+            f"{action_result.current_title} ({action_result.current_url})"
+        )
+
+        # 3. Capture AFTER state
+        after_url = get_current_url(self.browser_session)
+        after_title = get_current_title(self.browser_session)
+        after_content = self._get_combined_page_content()
+
+        # 4. Build combined before/after context for the checker
+        # The checker can now reason about transitions:
+        #   "cart badge 2 → 0" = cart cleared ✓
+        #   "inventory.html → login page" = session ended ✓
+        combined_content = (
+            f"=== STATE BEFORE ACTION ===\n"
+            f"URL: {before_url}\n"
+            f"Title: {before_title}\n"
+            f"{before_content}\n\n"
+            f"=== ACTION PERFORMED ===\n"
+            f"The action '{step.target_section}' was executed.\n\n"
+            f"=== STATE AFTER ACTION (current page) ===\n"
+            f"URL: {after_url}\n"
+            f"Title: {after_title}\n"
+            f"{after_content}"
+        )
+
+        # 5. Verify with combined before/after context
+        result = self._verify_section(
+            section=section,
+            current_url=after_url,
+            current_title=after_title,
+            page_content=combined_content,
+        )
+
+        self._log(
+            f"    [Action] Verification: {result.verdict.upper()} "
+            f"({result.compliance_score}/100)"
+        )
+
+        # Run post-verify interactions if any
+        self._run_post_verify_interactions(step)
+
+        return result
+
     def _identify_and_verify(
         self,
         step: TraversalStep,
@@ -555,6 +669,86 @@ class TraversalOrchestrator:
             current_title=current_title,
             page_content=page_content,
         )
+
+    def _try_remediate_and_reverify(
+        self,
+        result: SectionVerificationResult,
+        section: SpecSection,
+        step: TraversalStep,
+    ) -> SectionVerificationResult:
+        """
+        Self-correction loop: when a verification score is below the threshold,
+        feed the checker's structured ``missing`` list to the ActionEngine as a
+        targeted remediation goal, then re-verify once.
+
+        Design rationale for using ``result.missing`` (not ``result.notes``):
+          - ``missing`` is a List[str] — each item is a concrete, checkable thing
+            e.g. "All Items link not found", "Logout link not visible"
+          - Feeding these verbatim gives the LLM maximum context to decide
+            HOW to reveal them (open a menu, scroll, expand an accordion, etc.)
+          - ``notes`` is a prose summary — less precise for action planning
+
+        This is intentionally a single retry: if the page is still low-scoring
+        after remediation, we accept it. Looping would risk infinite cycles.
+        """
+        if result.compliance_score >= _LOW_SCORE_THRESHOLD:
+            return result  # score is acceptable — no remediation needed
+
+        if not result.missing:
+            return result  # nothing specific to act on
+
+        # Build a targeted remediation goal from the structured missing list
+        missing_bullets = "\n".join(f"  - {item}" for item in result.missing)
+        remediation_goal = (
+            f"The following items were expected on the page but could NOT be found:\n"
+            f"{missing_bullets}\n\n"
+            f"Take the MINIMUM actions needed to make these items visible — for example:\n"
+            f"  • Open a menu or side panel (click a toggle button)\n"
+            f"  • Expand an accordion or tab\n"
+            f"  • Scroll to reveal hidden content\n"
+            f"Do NOT navigate away from the current page. "
+            f"Stop as soon as the missing items appear."
+        )
+
+        self._log(
+            f"    [Remediate] Score {result.compliance_score}/100 < {_LOW_SCORE_THRESHOLD} "
+            f"— {len(result.missing)} missing item(s). Attempting remediation."
+        )
+
+        remediate_result = self.action_engine.execute_goal(
+            goal=remediation_goal,
+            max_steps=3,  # tight budget — simple reveal actions only
+        )
+
+        if remediate_result.success:
+            self._log(
+                f"    [Remediate] Remediation done → "
+                f"{remediate_result.current_title} ({remediate_result.current_url})"
+            )
+        else:
+            self._log(
+                f"    [Remediate] Remediation failed: "
+                f"{remediate_result.failure_reason[:100]}"
+            )
+
+        # Re-verify once regardless of remediation outcome
+        current_url = get_current_url(self.browser_session)
+        current_title = get_current_title(self.browser_session)
+        page_content = self._get_combined_page_content()
+
+        new_result = self._verify_section(
+            section=section,
+            current_url=current_url,
+            current_title=current_title,
+            page_content=page_content,
+        )
+
+        self._log(
+            f"    [Remediate] Re-verification: {new_result.compliance_score}/100 "
+            f"(was {result.compliance_score}/100)"
+        )
+
+        return new_result  # always accept the second result, even if still low
 
     def _run_post_verify_interactions(self, step: TraversalStep) -> None:
         """
@@ -676,25 +870,54 @@ class TraversalOrchestrator:
         """
         Build a NAVIGATION-ONLY goal for the ActionEngine from a plan step.
 
-        CRITICAL: The goal must ONLY be about reaching the target page.
-        It must NOT include interactions_needed (like clicking Checkout,
-        filling forms, or clicking Back). Those cause the ActionEngine to
-        overshoot past the target page before we can verify it.
+        CRITICAL: The goal must ONLY be about reaching the target page or
+        performing the target action. It must NOT include interactions_needed
+        (like clicking Checkout, filling forms, or clicking Back). Those cause
+        the ActionEngine to overshoot past the target page before we can verify it.
+
+        Stop-condition logic is TYPE-AWARE because different page types have
+        fundamentally different definitions of "done":
+          - navigation types  → URL/content changes to match the destination page
+          - overlay type      → content appears ON the current page (no URL change)
+          - action type       → a single click completes the action in-place (no URL change)
+        Sending the wrong stop condition causes the LLM to loop (it performs the
+        action but keeps waiting for a page transition that will never come).
         """
         section = section_map.get(step.target_section)
         section_desc = section.raw_text[:200] if section else ""
 
-        # ONLY navigation — no interactions on the target page
         goal = step.how_to_reach
 
-        # Add a stop instruction so the LLM doesn't keep interacting
-        goal += (
-            f"\n\nIMPORTANT: STOP as soon as you arrive at a page that matches "
-            f"this description: {section_desc}"
-            f"\nDo NOT interact with the page after arriving. "
-            f"Do NOT click any buttons or fill any forms on the destination page. "
-            f"Do NOT navigate away from the destination page."
-        )
+        if step.page_type == "action":
+            # Actions complete with a single click. Some stay on the same page
+            # (Reset App State), some navigate (Logout). Don't assume either.
+            goal += (
+                f"\n\nThis is an ACTION — perform it by clicking the relevant "
+                f"element, then immediately set goal_achieved=true. "
+                f"Do NOT click the same element multiple times. "
+                f"Do NOT wait for any specific page transition."
+            )
+
+        elif step.page_type == "overlay":
+            # Overlays (hamburger menu, modals) reveal content on the current page.
+            # No URL change — done when the overlay content becomes visible.
+            goal += (
+                f"\n\nThis opens an OVERLAY on the current page — the URL will "
+                f"NOT change. Signal goal_achieved=true as soon as the overlay "
+                f"content is visible in the DOM. "
+                f"Expected overlay content: {section_desc}"
+            )
+
+        else:
+            # All navigation types (listing, detail, summary, confirmation,
+            # form_gateway) involve an actual page transition.
+            goal += (
+                f"\n\nIMPORTANT: STOP as soon as you arrive at a page that matches "
+                f"this description: {section_desc}"
+                f"\nDo NOT interact with the page after arriving. "
+                f"Do NOT click any buttons or fill any forms on the destination page. "
+                f"Do NOT navigate away from the destination page."
+            )
 
         return goal
 

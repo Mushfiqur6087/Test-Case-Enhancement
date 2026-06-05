@@ -31,11 +31,20 @@ produce an ordered plan to visit every described page/feature.
 
 # Rules
 1. Order steps so dependencies are satisfied (e.g., "add to cart" before "cart")
-2. Put destructive actions (logout, reset) LAST
+2. Put destructive actions (logout, reset) LAST — after ALL other sections are visited
+   and the full checkout flow is complete. This is NON-NEGOTIABLE.
+   Your job is to TRAVERSE pages for verification, not to design test scenarios.
+   Do NOT reorder steps to "observe" the effect of destructive actions on state
+   (e.g., do not place Reset before checkout just to see the cart clear).
+   The Spec Checker verifies each page's structure and content independently.
 3. Mark pages that require authentication
 4. Each step must specify HOW to reach it from the previous state
-5. `interactions_needed` = state-changing browser actions only (clicks, form fills, button presses).
-   Leave empty ("") if only observation is needed — the Spec Checker handles verification.
+5. `interactions_needed` = ONLY actions that satisfy PREREQUISITES for a LATER step.
+   Example: "Click 'Add to cart' on one product" on the inventory page, because the
+   Shopping Cart step requires items in the cart.
+   Do NOT include actions that merely test or verify the current page (sorting, filtering,
+   hovering to see tooltips, toggling UI controls) — the Spec Checker handles verification.
+   Leave empty ("") if this page has no downstream prerequisites to satisfy.
 
 # Response Format
 {
