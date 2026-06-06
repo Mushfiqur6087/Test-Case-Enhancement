@@ -43,6 +43,7 @@ class DOMHelper:
     MAX_SCROLLS = 15
 
     def __init__(self, browser_session):
+        """Initialize the __init__ method."""
         self.browser_session = browser_session
 
     def scroll_and_capture(self) -> Tuple[str, str]:
@@ -53,7 +54,7 @@ class DOMHelper:
         IMPORTANT: After building the parser, we write it back to
         BrowserSession._parser and _selector_map.  This ensures the
         BrowserController reuses the *exact same index space* the LLM
-        received — preventing the split-brain where the ActionEngine's
+        received — preventing the split-brain where the InteractionAgent's
         DOMHelper and the controller each build independent parsers whose
         indices diverge (root cause of "index not in selector_map" errors).
         """

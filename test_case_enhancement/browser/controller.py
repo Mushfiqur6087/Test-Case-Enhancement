@@ -10,6 +10,7 @@ class BrowserController:
     """Wraps BrowserSession to provide high-level browser operations."""
 
     def __init__(self, llm_client=None):
+        """Initialize the __init__ method."""
         self.browser_context = BrowserSession()
         self.llm_client = llm_client
 
@@ -38,6 +39,7 @@ class BrowserController:
             return False
 
     def go_back(self) -> bool:
+        """go_back method/function."""
         try:
             self.browser_context.go_back()
             return True
@@ -45,6 +47,7 @@ class BrowserController:
             return False
 
     def click_element_by_index(self, element_index: int) -> bool:
+        """click_element_by_index method/function."""
         try:
             page = self.browser_context.get_current_page()
             if page is None:
@@ -112,6 +115,7 @@ class BrowserController:
             return False
 
     def input_text(self, element_index: int, text: str) -> bool:
+        """input_text method/function."""
         try:
             page = self.browser_context.get_current_page()
             if page is None:
@@ -268,7 +272,7 @@ class BrowserController:
             page.wait_for_timeout(300)
             # NOTE: do NOT reset _parser/_selector_map here for non-navigation
             # keys (Tab, Escape, etc.). Enter may navigate — but the next
-            # ActionEngine step will call scroll_and_capture() and re-sync anyway.
+            # InteractionAgent step will call scroll_and_capture() and re-sync anyway.
             return True
 
         except Exception as e:
@@ -322,6 +326,7 @@ class BrowserController:
             return False
 
     def navigate_to(self, url: str) -> bool:
+        """navigate_to method/function."""
         try:
             self.browser_context.navigate_to(url)
             return True
@@ -351,6 +356,7 @@ class BrowserController:
             return False
 
     def close(self) -> None:
+        """close method/function."""
         try:
             self.browser_context.close()
         except Exception:

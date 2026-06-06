@@ -26,7 +26,7 @@ _MEANINGFUL_ROLES = {
 _CALENDAR_ATTRS = {"data-day-timestamp", "data-day"}
 
 
-class SelectorMapFilter:
+class SelectorFilter:
     """Rule-based first-pass filter that removes obvious DOM noise."""
 
     # ------------------------------------------------------------------

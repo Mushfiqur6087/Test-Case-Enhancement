@@ -9,6 +9,7 @@ from test_case_enhancement.browser.dom_builder import DomTreeBuilder
 
 @dataclass
 class DOMTextNode:
+    """DOMTextNode class."""
     text: str
     is_visible: bool
     parent: Optional["DOMElementNode"] = None
@@ -16,6 +17,7 @@ class DOMTextNode:
 
 @dataclass
 class DOMElementNode:
+    """DOMElementNode class."""
     tag_name: str
     xpath: str
     attributes: Dict[str, str]
@@ -30,6 +32,7 @@ class DOMTreeParser:
     """Wrap a Playwright page to build a DOM tree and extract selector map."""
 
     def __init__(self, page) -> None:
+        """Initialize the __init__ method."""
         if page is None:
             raise ValueError("No page object provided for parsing.")
         self.page = page
@@ -175,6 +178,7 @@ class DOMTreeParser:
         _skip_attrs = {"class", "style"}
 
         def traverse(node: DOMElementNode, depth: int) -> None:
+            """traverse method/function."""
             if node.is_interactive:
                 index = self._flat_index
                 self._flat_index += 1

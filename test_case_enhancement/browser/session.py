@@ -12,6 +12,7 @@ class BrowserSession:
     """Simple browser session manager using Playwright."""
 
     def __init__(self):
+        """Initialize the __init__ method."""
         self._playwright = None
         self._browser: Optional[Browser] = None
         self._context: Optional[BrowserContext] = None
@@ -95,6 +96,7 @@ class BrowserSession:
             return "about:blank"
 
     def get_session(self) -> dict:
+        """get_session method/function."""
         return {
             "playwright": self._playwright,
             "browser": self._browser,
@@ -104,6 +106,7 @@ class BrowserSession:
         }
 
     def get_current_page(self) -> Optional[Page]:
+        """get_current_page method/function."""
         if self._current_page:
             return self._current_page
         if self._context:
@@ -149,12 +152,14 @@ class BrowserSession:
             self._current_page = self._tabs[0] if self._tabs else None
 
     def navigate_to(self, url: str) -> None:
+        """navigate_to method/function."""
         page = self.get_current_page()
         page.goto(url)
         self._parser = None
         self._selector_map = None
 
     def go_back(self) -> None:
+        """go_back method/function."""
         page = self.get_current_page()
         if page:
             page.go_back()
@@ -192,6 +197,7 @@ class BrowserSession:
         return infos
 
     def switch_to_tab(self, page_id: int) -> bool:
+        """switch_to_tab method/function."""
         if 0 <= page_id < len(self._tabs):
             self._current_page = self._tabs[page_id]
             self._parser = None
@@ -200,6 +206,7 @@ class BrowserSession:
         return False
 
     def create_new_tab(self, url: Optional[str] = None) -> Dict[str, Any]:
+        """create_new_tab method/function."""
         page = self.create_new_page()
         if url:
             page.goto(url)
@@ -213,6 +220,7 @@ class BrowserSession:
         }
 
     def close_tab(self, page_id: int) -> bool:
+        """close_tab method/function."""
         if 0 <= page_id < len(self._tabs):
             page = self._tabs[page_id]
             if page is self._current_page:
@@ -342,6 +350,7 @@ class BrowserSession:
             return None
 
     def close(self) -> None:
+        """close method/function."""
         self._tabs.clear()
         self._parser = None
         self._selector_map = None
@@ -363,13 +372,16 @@ class BrowserSession:
         })
 
     def get_recent_alerts(self) -> List[Dict[str, Any]]:
+        """get_recent_alerts method/function."""
         return self._recent_alerts
 
     def clear_alerts(self) -> None:
+        """clear_alerts method/function."""
         self._recent_alerts.clear()
 
     def _setup_alert_handlers(self, page: Page) -> None:
         def handle_alert(dialog):
+            """handle_alert method/function."""
             try:
                 message = dialog.message
                 dialog_type = dialog.type
@@ -389,6 +401,7 @@ class BrowserSession:
         page.on("dialog", handle_alert)
 
     def get_formatted_alerts_for_llm(self) -> str:
+        """get_formatted_alerts_for_llm method/function."""
         if not self._recent_alerts:
             return ""
         alert_lines = ["Recent Browser Alerts:"]
@@ -397,4 +410,5 @@ class BrowserSession:
         return "\n".join(alert_lines)
 
     def has_recent_alerts(self) -> bool:
+        """has_recent_alerts method/function."""
         return len(self._recent_alerts) > 0

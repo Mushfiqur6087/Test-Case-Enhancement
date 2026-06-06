@@ -4,7 +4,9 @@ import time
 
 
 class DomTreeBuilder:
+    """DomTreeBuilder class."""
     def __init__(self, page, debug_mode=False):
+        """Initialize the __init__ method."""
         self.page = page
         self.debug_mode = debug_mode
         if debug_mode:
@@ -138,6 +140,7 @@ class DomTreeBuilder:
         }""")
 
     def measure_time(self, fn, metric_name=None):
+        """measure_time method/function."""
         if not self.debug_mode:
             return fn()
 
@@ -151,10 +154,12 @@ class DomTreeBuilder:
         return result
 
     def is_element_visible(self, element_handle):
+        """is_element_visible method/function."""
         if element_handle is None:
             return False
 
         def check():
+            """check method/function."""
             try:
                 return element_handle.evaluate("element => window.domTreeHelpers.isElementVisible(element)")
             except:
@@ -163,10 +168,12 @@ class DomTreeBuilder:
         return self.measure_time(check, "is_element_visible")
 
     def is_interactive_element(self, element_handle):
+        """is_interactive_element method/function."""
         if element_handle is None:
             return False
 
         def check():
+            """check method/function."""
             try:
                 return element_handle.evaluate("element => window.domTreeHelpers.isInteractiveElement(element)")
             except:
@@ -175,12 +182,14 @@ class DomTreeBuilder:
         return self.measure_time(check, "is_interactive_element")
 
     def is_in_viewport(self, element_handle):
+        """is_in_viewport method/function."""
         try:
             return element_handle.evaluate("element => window.domTreeHelpers.isInViewport(element)")
         except:
             return False
 
     def build_dom_tree(self, element_handle=None):
+        """build_dom_tree method/function."""
         if self.debug_mode:
             self.perf_metrics["build_dom_tree_calls"] += 1
 
@@ -271,6 +280,7 @@ class DomTreeBuilder:
         return node_data
 
     def get_dom_tree(self):
+        """get_dom_tree method/function."""
         if self.debug_mode:
             for key in self.perf_metrics["timings"]:
                 self.perf_metrics["timings"][key] = 0
