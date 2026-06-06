@@ -1,13 +1,13 @@
 """
-TestCaseEnricherAgent module for enriching and repairing test cases using mock data and DOM verification results.
+TestDataEnricherAgent module for enriching and repairing test cases using mock data and DOM verification results.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 
 from test_case_enhancement.core.models import TestCase, TestCaseVerificationResult, EnrichedTestCase
-from test_case_enhancement.agents.prompts import PROMPT_ENRICHER_SYSTEM, PROMPT_ENRICHER_CHECK
-from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.llm.prompts import PROMPT_ENRICHER_SYSTEM, PROMPT_ENRICHER_CHECK
+from test_case_enhancement.llm.client import LLMClient
 from test_case_enhancement.core.utils import log, parse_llm_json
 
 def format_test_cases_block(test_cases: List[TestCase]) -> str:
@@ -41,10 +41,11 @@ def format_verification_results(results: List[TestCaseVerificationResult]) -> st
     return "\n".join(lines)
 
 
-class TestCaseEnricherAgent:
+class TestDataEnricherAgent:
     """Agent that enriches and repairs test cases based on mock data and checker results."""
 
     def __init__(self, llm: LLMClient, debug: bool = False, debug_file: str = None):
+        """Initialize the __init__ method."""
         self.debug = debug
         self.debug_file = debug_file
         self.llm_call_count = 0
@@ -84,7 +85,7 @@ class TestCaseEnricherAgent:
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
-            log(f"  [TestCaseEnricherAgent] LLM error: {e}", self.debug, self.debug_file)
+            log(f"  [TestDataEnricherAgent] LLM error: {e}", self.debug, self.debug_file)
             self.llm_call_count += 1
             return []
 
@@ -111,6 +112,6 @@ class TestCaseEnricherAgent:
                 )
                 enriched_results.append(enriched_tc)
             except Exception as e:
-                log(f"  [TestCaseEnricherAgent] Error parsing enriched result for TC: {e}", self.debug, self.debug_file)
+                log(f"  [TestDataEnricherAgent] Error parsing enriched result for TC: {e}", self.debug, self.debug_file)
                 
         return enriched_results

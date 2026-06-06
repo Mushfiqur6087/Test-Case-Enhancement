@@ -1,12 +1,16 @@
 """
-TestCaseCheckerAgent module for validating test case steps against a live web page.
+TestStepVerifierAgent module for validating test case steps against a live web page.
 """
 
-from typing import Any, Dict, List
-from test_case_enhancement.core.models import TestCase, TestCaseVerificationResult
-from test_case_enhancement.agents.prompts import PROMPT_STEP_CHECKER_SYSTEM, PROMPT_STEP_CHECKER_CHECK
-from test_case_enhancement.core.llm import LLMClient
+from typing import List, Dict, Any, Optional
+
+from test_case_enhancement.llm.client import LLMClient
 from test_case_enhancement.core.utils import log, parse_llm_json
+from test_case_enhancement.core.models import TestCase, TestCaseVerificationResult
+from test_case_enhancement.llm.prompts import (
+    PROMPT_STEP_CHECKER_SYSTEM,
+    PROMPT_STEP_CHECKER_CHECK,
+)
 
 def format_test_cases_block(test_cases: List[TestCase]) -> str:
     """Format a list of TestCase objects into the prompt block."""
@@ -22,10 +26,11 @@ def format_test_cases_block(test_cases: List[TestCase]) -> str:
     return "\\n".join(lines)
 
 
-class TestCaseCheckerAgent:
+class TestStepVerifierAgent:
     """Agent that verifies human-written test cases against a live page DOM."""
 
     def __init__(self, llm: LLMClient, debug: bool = False, debug_file: str = None):
+        """Initialize the __init__ method."""
         self.debug = debug
         self.debug_file = debug_file
         self.llm_call_count = 0
@@ -72,7 +77,7 @@ class TestCaseCheckerAgent:
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
-            log(f"  [TestCaseCheckerAgent] LLM error: {e}", self.debug, self.debug_file)
+            log(f"  [TestStepVerifierAgent] LLM error: {e}", self.debug, self.debug_file)
             self.llm_call_count += 1
             return []
 
@@ -91,6 +96,6 @@ class TestCaseCheckerAgent:
                 )
                 results.append(tc_result)
             except Exception as e:
-                log(f"  [TestCaseCheckerAgent] Error parsing result for TC: {e}", self.debug, self.debug_file)
+                log(f"  [TestStepVerifierAgent] Error parsing result for TC: {e}", self.debug, self.debug_file)
                 
         return results
