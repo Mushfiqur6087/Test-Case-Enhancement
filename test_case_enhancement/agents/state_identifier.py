@@ -8,22 +8,23 @@ Returns the best-matching section name (or None) with a confidence score.
 Confidence threshold: 60 — below that it is treated as no match.
 """
 
-from typing import List, Optional, Tuple
+from typing import Optional, Dict, Any, List, Tuple
+import json
 
-from test_case_enhancement.core.llm import LLMClient
-from test_case_enhancement.core.models import SpecSection
+from test_case_enhancement.llm.client import LLMClient
 from test_case_enhancement.core.utils import log, parse_llm_json
-from test_case_enhancement.agents.prompts import (
-    PROMPT_PAGE_IDENTIFIER_SYSTEM,
-    PROMPT_PAGE_IDENTIFIER_USER,
+from test_case_enhancement.llm.prompts import (
+    PROMPT_STATE_IDENTIFIER_SYSTEM,
+    PROMPT_STATE_IDENTIFIER_USER,
 )
+from test_case_enhancement.core.models import SpecSection
 
 _CONFIDENCE_THRESHOLD = 60
 _MAX_PAGE_CONTENT_CHARS = 8_000
 _MAX_SECTION_DESC_CHARS = 400  # per section in the sections list
 
 
-class PageIdentifierAgent:
+class StateIdentifierAgent:
     """
     Matches a live page against a list of spec sections using an LLM.
 
@@ -36,6 +37,7 @@ class PageIdentifierAgent:
         debug: bool = False,
         debug_file: Optional[str] = None,
     ):
+        """Initialize the __init__ method."""
         self.debug = debug
         self.debug_file = debug_file
         self.llm_call_count = 0
@@ -43,7 +45,7 @@ class PageIdentifierAgent:
         self._llm = LLMClient(
             api_key=llm_client.api_key,
             model_name=llm_client.model_name,
-            system_prompt=PROMPT_PAGE_IDENTIFIER_SYSTEM,
+            system_prompt=PROMPT_STATE_IDENTIFIER_SYSTEM,
             debug_file=debug_file,
         )
 
@@ -75,7 +77,7 @@ class PageIdentifierAgent:
         sections_list = self._format_sections_list(all_sections)
         truncated_content = page_content[:_MAX_PAGE_CONTENT_CHARS]
 
-        prompt = PROMPT_PAGE_IDENTIFIER_USER.format(
+        prompt = PROMPT_STATE_IDENTIFIER_USER.format(
             current_url=current_url,
             current_title=current_title,
             page_content=truncated_content or "(empty page)",
@@ -87,7 +89,7 @@ class PageIdentifierAgent:
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
-            log(f"  [PageIdentifier] LLM error: {e}", self.debug, self.debug_file)
+            log(f"  [StateIdentifier] LLM error: {e}", self.debug, self.debug_file)
             self.llm_call_count += 1
             return None, 0
 
@@ -99,7 +101,7 @@ class PageIdentifierAgent:
         valid_names = {s.name for s in all_sections}
         if matched and matched not in valid_names:
             log(
-                f"  [PageIdentifier] LLM returned unknown section '{matched}' — ignoring.",
+                f"  [StateIdentifier] LLM returned unknown section '{matched}' — ignoring.",
                 self.debug, self.debug_file,
             )
             matched = None
@@ -109,7 +111,7 @@ class PageIdentifierAgent:
             matched = None
 
         log(
-            f"  [PageIdentifier] '{current_title}' ({current_url}) → "
+            f"  [StateIdentifier] '{current_title}' ({current_url}) → "
             f"{'«' + matched + '»' if matched else 'no match'} "
             f"[{confidence}%] — {reasoning[:80]}",
             self.debug, self.debug_file,

@@ -14,17 +14,19 @@ Key design:
   - No hardcoded URL patterns, no link extraction, no keyword matching
 """
 
+import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.llm.client import LLMClient
 from test_case_enhancement.core.models import SpecSection
 from test_case_enhancement.core.utils import log, parse_llm_json
-from test_case_enhancement.agents.prompts import (
+from test_case_enhancement.llm.prompts import (
     PROMPT_TRAVERSAL_PLANNER_SYSTEM,
     PROMPT_TRAVERSAL_PLANNER_USER,
     PROMPT_REPLAN_STEP,
     PROMPT_STEP_ADVISOR,
+    PROMPT_ACTION_PREREQUISITE_CHECK,
 )
 
 
@@ -47,12 +49,14 @@ class TraversalPlan:
     steps: List[TraversalStep] = field(default_factory=list)  # flattened ordered steps
 
 
-class TraversalPlannerAgent:
+class NavigationPlannerAgent:
     """
     Generates and refines a spec-aware traversal plan.
 
     Phase 1: Generate initial plan from the full functional description.
-    Phase 2: Replan individual steps when they fail during execution.
+    Phase 2: Adapt plan dynamically during execution:
+             - Validate and adjust the next step after every successful action.
+             - Replan individual steps when they fail to find an alternative route.
     """
 
     def __init__(
@@ -61,6 +65,7 @@ class TraversalPlannerAgent:
         debug: bool = False,
         debug_file: Optional[str] = None,
     ):
+        """Initialize the __init__ method."""
         self.debug = debug
         self.debug_file = debug_file
         self.llm_call_count = 0
