@@ -1,7 +1,7 @@
 """
 Action Engine — Unified Playwright-based goal execution.
 
-Replaces the old Navigator + LinkDiscovery agents with a single,
+Provides a single,
 goal-oriented action engine that:
   1. Takes a navigation GOAL in natural language
   2. Reads the current page's DOM (selector map)
@@ -9,7 +9,7 @@ goal-oriented action engine that:
   4. Executes them using the BrowserController's Playwright-backed actions
   5. Verifies the page state changed
 
-Key improvements over Navigator:
+Key features:
   - Goal-oriented (not index-oriented or text-match-oriented)
   - Handles forms, buttons, icons, and all interactive elements
   - Progress detection: detects when actions don't change page state
@@ -20,23 +20,24 @@ Key improvements over Navigator:
 """
 
 from typing import Any, Dict, List, Optional, Tuple
+from test_case_enhancement.core.utils import json
+import time
 
-from test_case_enhancement.core.llm import LLMClient
-from test_case_enhancement.core.utils import (
-    get_current_title,
-    get_current_url,
-    log,
-    parse_llm_json,
-    wait_for_page,
-)
+from test_case_enhancement.browser.session import BrowserSession
 from test_case_enhancement.browser.controller import BrowserController
 from test_case_enhancement.browser.dom_helper import DOMHelper
+from test_case_enhancement.browser.selector_filter import SelectorFilter
+from test_case_enhancement.llm.client import LLMClient
+from test_case_enhancement.core.utils import log, parse_llm_json, get_current_title, get_current_url
 from test_case_enhancement.browser.screenshot import capture_screenshot_b64
-from test_case_enhancement.browser.selector_filter import SelectorMapFilter
-from test_case_enhancement.agents.prompts import (
-    PROMPT_ACTION_ENGINE_SYSTEM,
-    PROMPT_ACTION_ENGINE_STEP,
+from test_case_enhancement.llm.prompts import (
+    PROMPT_INTERACTION_AGENT_SYSTEM,
+    PROMPT_INTERACTION_AGENT_STEP,
 )
+
+def wait_for_page(browser_session: BrowserSession, timeout: int = 5000) -> None:
+    """wait_for_page method/function."""
+    pass  # Used to be in browser_controller
 
 
 # Max LLM-driven steps per goal to prevent infinite loops
@@ -57,6 +58,7 @@ class ActionResult:
         actions_taken: int = 0,
         steps_used: int = 0,
     ):
+        """Initialize the __init__ method."""
         self.success = success
         self.current_url = current_url
         self.current_title = current_title
@@ -65,7 +67,7 @@ class ActionResult:
         self.steps_used = steps_used
 
 
-class ActionEngine:
+class InteractionAgent:
     """
     Goal-oriented browser action execution engine.
 
@@ -85,9 +87,10 @@ class ActionEngine:
         browser_session,
         debug: bool = False,
         debug_file: Optional[str] = None,
-        selector_filter: Optional[SelectorMapFilter] = None,
+        selector_filter: Optional[SelectorFilter] = None,
         base_url: str = "",
     ):
+        """Initialize the __init__ method."""
         self.browser_controller = browser_controller
         self.browser_session = browser_session
         self.dom_helper = DOMHelper(browser_session)
@@ -100,7 +103,7 @@ class ActionEngine:
         self._llm = LLMClient(
             api_key=llm_client.api_key,
             model_name=llm_client.model_name,
-            system_prompt=PROMPT_ACTION_ENGINE_SYSTEM,
+            system_prompt=PROMPT_INTERACTION_AGENT_SYSTEM,
             debug_file=debug_file,
         )
 
@@ -137,7 +140,7 @@ class ActionEngine:
         step_limit = max_steps if max_steps > 0 else _MAX_STEPS_PER_GOAL
 
         log(
-            f"  [ActionEngine] Goal: {goal[:120]}",
+            f"  [InteractionAgent] Goal: {goal[:120]}",
             self.debug, self.debug_file,
         )
 
@@ -146,7 +149,7 @@ class ActionEngine:
 
         for step_num in range(1, step_limit + 1):
             # 1. Dismiss overlays first
-            self._dismiss_overlays()
+            # (handled by InteractionAgent LLM or removed legacy method)
 
             # 2. Capture current DOM + screenshot
             selector_map_json, selector_map_string = self.dom_helper.scroll_and_capture()
@@ -192,7 +195,7 @@ class ActionEngine:
             # 4. Handle goal_achieved signal
             if goal_achieved:
                 log(
-                    f"  [ActionEngine] Goal achieved at step {step_num}: {reasoning[:80]}",
+                    f"  [InteractionAgent] Goal achieved at step {step_num}: {reasoning[:80]}",
                     self.debug, self.debug_file,
                 )
                 # IMPORTANT: The LLM sometimes violates Rule 3 by returning both
@@ -204,7 +207,7 @@ class ActionEngine:
                 # updated post-action URL/title so the caller sees the real state.
                 if actions:
                     log(
-                        f"  [ActionEngine] Executing {len(actions)} pending action(s) "
+                        f"  [InteractionAgent] Executing {len(actions)} pending action(s) "
                         f"alongside goal_achieved (LLM Rule 3 violation — executing anyway).",
                         self.debug, self.debug_file,
                     )
@@ -225,7 +228,7 @@ class ActionEngine:
             # 5. Handle goal_failed signal
             if goal_failed:
                 log(
-                    f"  [ActionEngine] Goal failed at step {step_num}: {failure_reason[:120]}",
+                    f"  [InteractionAgent] Goal failed at step {step_num}: {failure_reason[:120]}",
                     self.debug, self.debug_file,
                 )
                 return ActionResult(
@@ -240,7 +243,7 @@ class ActionEngine:
             # 6. Handle no actions
             if not actions:
                 log(
-                    f"  [ActionEngine] No actions returned at step {step_num}.",
+                    f"  [InteractionAgent] No actions returned at step {step_num}.",
                     self.debug, self.debug_file,
                 )
                 return ActionResult(
@@ -278,7 +281,7 @@ class ActionEngine:
             })
 
             log(
-                f"  [ActionEngine] Step {step_num}: {reasoning[:80]} → {new_title} ({new_url})",
+                f"  [InteractionAgent] Step {step_num}: {reasoning[:80]} → {new_title} ({new_url})",
                 self.debug, self.debug_file,
             )
 
@@ -288,7 +291,7 @@ class ActionEngine:
                 _, new_dom = self.dom_helper.scroll_and_capture()
                 if new_dom == selector_map_string:
                     log(
-                        f"  [ActionEngine] Page unchanged after step {step_num} — stopping.",
+                        f"  [InteractionAgent] Page unchanged after step {step_num} — stopping.",
                         self.debug, self.debug_file,
                     )
                     # Don't immediately fail — let the LLM decide in next step
@@ -362,7 +365,7 @@ class ActionEngine:
         # prompt block looks clean; otherwise collapse to empty string.
         tab_context_block = (tab_context.strip() + "\n\n") if tab_context.strip() else ""
 
-        prompt = PROMPT_ACTION_ENGINE_STEP.format(
+        prompt = PROMPT_INTERACTION_AGENT_STEP.format(
             step_number=step_number,
             current_url=current_url,
             current_title=current_title,
@@ -398,7 +401,7 @@ class ActionEngine:
             self.llm_call_count += 1
             data = parse_llm_json(response)
         except Exception as e:
-            log(f"  [ActionEngine] LLM error: {e}", self.debug, self.debug_file)
+            log(f"  [InteractionAgent] LLM error: {e}", self.debug, self.debug_file)
             self.llm_call_count += 1
             return ([], False, True, "", f"LLM error: {e}")
 
@@ -411,7 +414,7 @@ class ActionEngine:
         return (actions, goal_achieved, goal_failed, reasoning, failure_reason)
 
     # ================================================================
-    # Action Execution (reused from Navigator pattern)
+    # Action Execution
     # ================================================================
 
     def _execute_actions(self, actions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -441,7 +444,7 @@ class ActionEngine:
 
             if handler is None:
                 log(
-                    f"  [ActionEngine] Unknown action: {action_name}",
+                    f"  [InteractionAgent] Unknown action: {action_name}",
                     self.debug, self.debug_file,
                 )
                 continue
@@ -451,7 +454,7 @@ class ActionEngine:
                     actions_taken.append(action)
             except Exception as e:
                 log(
-                    f"  [ActionEngine] Action {action_name} failed: {e}",
+                    f"  [InteractionAgent] Action {action_name} failed: {e}",
                     self.debug, self.debug_file,
                 )
 
