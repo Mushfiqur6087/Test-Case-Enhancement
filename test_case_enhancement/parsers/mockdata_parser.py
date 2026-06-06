@@ -1,6 +1,7 @@
 """Credential parsing for the exploration agent."""
 
-from typing import List
+import re
+from typing import Dict, List, Optional
 
 from test_case_enhancement.core.models import RoleCredentials
 from test_case_enhancement.core.utils import parse_llm_json, read_file_contents
@@ -10,11 +11,12 @@ class CredentialParser:
     """Parses credential files into structured RoleCredentials."""
 
     def __init__(self, llm_client):
+        """Initialize the __init__ method."""
         self.llm_client = llm_client
 
     def parse_credentials(self, credentials_file_path: str) -> List[RoleCredentials]:
         """Read and parse credentials file using LLM to extract structured data."""
-        from test_case_enhancement.agents.prompts import PROMPT_CREDENTIAL_PARSING
+        from test_case_enhancement.llm.prompts import PROMPT_CREDENTIAL_PARSING
 
         content = read_file_contents(credentials_file_path)
         if content.startswith("Error:"):

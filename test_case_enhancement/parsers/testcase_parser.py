@@ -3,7 +3,7 @@ Parser for test_cases.md files.
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from test_case_enhancement.core.models import TestCase, TestCaseStep
 
 def parse_test_cases(file_path: str) -> Dict[str, List[TestCase]]:
