@@ -8,6 +8,7 @@ class DebugLogger:
     """Debug logging utility for consistent log file management."""
 
     def __init__(self):
+        """Initialize the __init__ method."""
         self.logs_dir = Path(__file__).resolve().parent.parent / "logs"
         self.logs_dir.mkdir(exist_ok=True)
 
