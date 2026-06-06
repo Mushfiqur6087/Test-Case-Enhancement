@@ -39,6 +39,7 @@ def _is_vision_model(model_name: str) -> bool:
 
 
 class LLMClient:
+    """LLMClient class."""
     def __init__(
         self,
         api_key: str,
@@ -46,6 +47,7 @@ class LLMClient:
         system_prompt: str = "You are a helpful assistant.",
         debug_file: str = None,
     ):
+        """Initialize the __init__ method."""
         self.api_key = api_key
         self.model_name = model_name
         self.system_prompt = system_prompt

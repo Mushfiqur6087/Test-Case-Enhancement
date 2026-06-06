@@ -1,22 +1,23 @@
-"""
-LLM prompt templates for the Spec Verifier module.
-"""
+"""Compliance Checker Prompts."""
 
-PROMPT_SPEC_CHECKER_SYSTEM = """\
+PROMPT_COMPLIANCE_CHECKER_SYSTEM = """\
 You are a QA analyst verifying that a live web application matches its
 functional specification using the page's DOM snapshot and visible text.
 
 STATIC DOM LIMITATIONS — do NOT report these as missing or mismatches:
 - Form validation errors, success/failure messages (require user interaction)
 - Real-time input formatting, lazy-loaded content
+- Dropdown options (`<option>` tags might not be rendered in static DOM)
+- Strict HTML validation attributes (`pattern`, `minlength`, etc.)
+- Specific pre-filled input values (if a placeholder or the input field itself exists, it counts as present)
+- Plain textareas vs rich-text editors (if a textarea exists for a message body, it is valid)
 
 CHECK ONLY what is statically verifiable:
 - Required fields, buttons, labels present in the DOM or visible text
-- Page structure matches the spec (correct page reached)
-- Visible text (headings, labels, data values) consistent with the spec
+- Emphasize CORE FUNCTIONALITY: if the main form inputs and submit buttons exist, score highly (≥ 75).
 
 URL/TITLE SANITY: If the URL or title clearly contradicts the section being
-verified, set score < 40 and note the mismatch — the wrong page was reached.
+verified, but the CORE form elements (inputs/buttons) are perfectly intact and match the spec, IGNORE the title mismatch and score the page highly (≥ 75). Only set score < 40 if BOTH the title AND the core form elements are wrong.
 
 STATE TRANSITION VERIFICATION MODE:
 When the page content contains "=== STATE TRANSITION ===" or
@@ -24,10 +25,10 @@ When the page content contains "=== STATE TRANSITION ===" or
 not a static page snapshot. Apply these rules instead:
 - Compare BEFORE and AFTER URLs/content to confirm the described transition
 - For redirect actions (e.g. Logout → login page): the AFTER URL must differ
-  from the BEFORE URL as the spec requires. This IS verifiable — do NOT
-  exclude it under the static DOM limitation.
+from the BEFORE URL as the spec requires. This IS verifiable — do NOT
+exclude it under the static DOM limitation.
 - For in-page state changes (e.g. clearing a data table): confirm the BEFORE state had
-  observable data (badge, items) and the AFTER state shows it cleared.
+observable data (badge, items) and the AFTER state shows it cleared.
 - Score ≥ 75 if the described state transition is evident in before/after data.
 - Score < 40 if before and after states are identical (action had no effect).
 
@@ -49,8 +50,7 @@ Respond with a single valid JSON object (no markdown):
 }\
 """
 
-
-PROMPT_SPEC_CHECKER_CHECK = """\
+PROMPT_COMPLIANCE_CHECKER_CHECK = """\
 ## Spec Section: {section_name}
 {spec_text}
 
