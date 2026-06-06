@@ -1,0 +1,793 @@
+{
+  "test_cases": [
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Email/Username input found (input#username)",
+        "step 2: Password input found (input#password)",
+        "step 3: Sign In button found (button[type=submit] text='Sign In')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All interactive elements required by the test (username, password, Sign In) are present on the page. Post-submit outcomes are dynamic and not verified here."
+    },
+    {
+      "tc_id": "TC-008",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Email/Username input found (input#username)",
+        "step 2: Password input found (input#password)",
+        "step 3: Sign In button found (button[type=submit] text='Sign In')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Elements to enter credentials and submit are present. The expected error message and field-clear behaviour are dynamic and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-009",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Email/Username input found (input#username)",
+        "step 2: Password input found (input#password)",
+        "step 3: Sign In button found (button[type=submit] text='Sign In')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All required inputs and the submit button exist. Whether an 8-character password succeeds is a runtime/backend validation not verifiable here."
+    },
+    {
+      "tc_id": "TC-014",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Email/Username input found (input#username)",
+        "step 2: Password input found (input#password)",
+        "step 3: Sign In button found (button[type=submit] text='Sign In')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The test's interactive steps map to existing inputs and the submit button. The post-failure state requirements (password cleared, email preserved) are dynamic and cannot be confirmed from the static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: First Name input found (input#firstName); Last Name input found (input#lastName); Street Address input found (input#streetAddress); City input found (input#city)",
+        "step 2: State selector found (button[role=combobox] text='Select state')",
+        "step 3: ZIP Code input found (input#zipCode)",
+        "step 4: Phone Number input found (input#phoneNumber)",
+        "step 5: SSN input found (input#ssn)",
+        "step 6: Username (Email) input found (input#username type='email')",
+        "step 7: Password input found (input#password type='password'); Confirm Password input found (input#confirmPassword type='password')",
+        "step 8: Register button found (button[type=submit] text='Register')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable UI elements required for the happy-path registration exist on the page. Post-submit outcomes (success message / redirect) are dynamic and therefore not verified here."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Leaving fields blank is an actionable step — required fields are present on the page: First Name (input#firstName), Last Name (input#lastName), Street Address (input#streetAddress), City (input#city), State (button[role=combobox] text='Select state'), ZIP (input#zipCode), Phone (input#phoneNumber), SSN (input#ssn), Username (input#username), Password (input#password), Confirm Password (input#confirmPassword)",
+        "step 2: Register button found (button[type=submit] text='Register')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All fields referenced by the negative test exist on the page and the Register button is present. Inline validation errors are runtime behavior and are not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Password input found (input#password type='password')",
+        "step 2: Confirm Password input found (input#confirmPassword type='password')",
+        "step 3: Other required fields exist and are available to fill: First Name (input#firstName), Last Name (input#lastName), Street Address (input#streetAddress), City (input#city), State (button[role=combobox] text='Select state'), ZIP (input#zipCode), Phone (input#phoneNumber), SSN (input#ssn), Username (input#username)",
+        "step 4: Register button found (button[type=submit] text='Register')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Password and confirm fields exist so the mismatch scenario can be executed. The inline error behavior is dynamic and not checked in the static DOM."
+    },
+    {
+      "tc_id": "TC-017",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: All required input fields to fill exist (input#firstName, input#lastName, input#streetAddress, input#city, button[role=combobox] for state, input#zipCode, input#phoneNumber, input#ssn, input#username, input#password, input#confirmPassword)",
+        "step 2: Phone Number input found (input#phoneNumber) — accepts typing of raw digits",
+        "step 4: Register button found (button[type=submit] text='Register')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The phone input exists and can accept raw digits; the auto-format observation (step 3) is a dynamic behavior and cannot be verified from the static DOM snapshot."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigate to Accounts Overview — Accounts Overview page/link found (anchor href='/dashboard', heading present)",
+        "step 2: Inspect the Account Number column for each row — masked account number links found (anchors with inner_text '****5001', '****5002', '****5003', '****5004', '****8747')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable steps reference UI elements present on the Accounts Overview page; account numbers are shown masked in the DOM."
+    },
+    {
+      "tc_id": "TC-008",
+      "verdict": "invalid",
+      "valid_steps": [
+        "step 1: Navigate directly to the Accounts Overview URL — Accounts Overview page is reachable (anchor href '/dashboard' and page content present)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition says user is unauthenticated, but the live page shows an authenticated dashboard (Welcome back, John Doe and account data visible) — the test cannot be executed under the stated precondition"
+      ],
+      "invalid_reason": "The page snapshot shows an authenticated session; the negative test (unauthenticated redirect) cannot be validated from this state.",
+      "notes": "The navigation step is present, but the precondition (user not authenticated) is not met on the live page, so the expected redirect to Login cannot be verified."
+    },
+    {
+      "tc_id": "TC-012",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 1: Navigate to Accounts Overview — Accounts Overview page/link found",
+        "step 2: Locate rows with zero and negative balances — negative balance rows are present (e.g. '-$1,534.67', '-$45,000.00')",
+        "step 3: Observe each row's display and the Total Balance footer — Total Balance footer is present ('Total Balance -$15,008.25' visible) and row balance values are displayed"
+      ],
+      "invalid_steps": [
+        "step 2: Row with zero balance not found anywhere in the DOM — no account with a zero Current Balance is present in the snapshot"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires at least one account with Current_Balance = 0; the live page contains negative balances but no zero balance row"
+      ],
+      "invalid_reason": "",
+      "notes": "Negative balances and the Total Balance footer are present and verifiable, but the required zero-balance account is missing from the page, so the test cannot fully execute as written."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: 'Open New Account' navigation present (a[href='/open-account'] with text 'Open New Account') — page is the Open New Account page",
+        "step 2: 'Checking' account option radio found (input[type='radio'] adjacent to h3 text 'Checking')",
+        "step 3: Initial Deposit Amount input found (input#initialDeposit name='initialDeposit' type='number')",
+        "step 4: Funding Source control found (button role='combobox' inner_text='Select funding source')",
+        "step 5: 'Open Account' submit button found (button[type='submit'] text='Open Account')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All UI elements required by the test (account type radios, deposit input, funding combobox, submit) are present on the Open New Account page; runtime/data-dependent preconditions (funding account balance) are external and not verifiable from the DOM."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: 'Checking' account option radio found (input[type='radio'] adjacent to h3 text 'Checking')",
+        "step 2: Initial Deposit Amount input found (input#initialDeposit name='initialDeposit' type='number')",
+        "step 3: Funding Source control found (button role='combobox' inner_text='Select funding source')",
+        "step 4: 'Open Account' submit button found (button[type='submit'] text='Open Account')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All referenced controls for selecting account type, entering deposit, choosing funding source, and submitting are present. The expected inline error on insufficient funds is a runtime behavior and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-016",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Account type radio options present (input[type='radio'] for 'Checking' and 'Savings')",
+        "step 2: Initial Deposit Amount input found (input#initialDeposit name='initialDeposit' type='number')",
+        "step 3: Funding Source control found (button role='combobox' inner_text='Select funding source')",
+        "step 4: 'Open Account' submit button found (button[type='submit'] text='Open Account')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "UI elements required by the test are present. The existence of a funding account with an exact balance X is an external data precondition and cannot be confirmed from the DOM."
+    },
+    {
+      "tc_id": "TC-018",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: 'Checking' account radio found (input[type='radio'] adjacent to h3 'Checking')",
+        "step 2: Initial Deposit Amount input found (input#initialDeposit name='initialDeposit' type='number')",
+        "step 3: Funding Source control found (button role='combobox' inner_text='Select funding source')",
+        "step 4: 'Savings' account radio found (input[type='radio'] adjacent to h3 'Savings') — allows switching account type"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All interactive elements required to reproduce the interaction (select Checking, enter amount, choose funding source, switch to Savings) are present. The real-time validation behavior after switching is dynamic and cannot be verified from this static DOM."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigate to Transfer Funds — current page shows Transfer Funds (link /transfer and page header present)",
+        "step 2: Select External Account — radio input#external name='transferType' with label 'External Account' found",
+        "step 3: Enter a valid transfer amount — input#amount (type=number) found",
+        "step 4: Select a valid source account — 'Select source account' combobox/button (role=combobox) found",
+        "step 6: Click Transfer — submit button with text 'Transfer Funds' (button[type=submit]) found"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'User is logged in' satisfied by page text 'Welcome back, John Doe' and 'Log Out' button"
+      ],
+      "invalid_reason": "",
+      "notes": "All interactive controls required by the test are present (amount input, source combobox, external account radio, submit). The External Account Number and Confirm fields referenced in step 5 are not present in the static DOM — they are likely conditional and would appear after selecting External Account; this is unverifiable from this snapshot but the trigger (radio) exists."
+    },
+    {
+      "tc_id": "TC-009",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Select My ParaBank Account — radio input#internal name='transferType' with label 'My ParaBank Account' found",
+        "step 2: Enter an amount exceeding the source account balance — input#amount (type=number) found",
+        "step 3: Select the source account — 'Select source account' combobox/button (role=combobox) found",
+        "step 4: Select a destination account — 'Select destination account' combobox/button (role=combobox) found",
+        "step 5: Click Transfer — submit button with text 'Transfer Funds' (button[type=submit]) found"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable UI elements mentioned in the steps exist on the page (radios, amount input, source/destination comboboxes, submit). Balance-related behaviour is backend/dynamic and is not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Select External Account — radio input#external name='transferType' with label 'External Account' found",
+        "step 2: Enter a valid amount and source account — input#amount (type=number) and 'Select source account' combobox/button found",
+        "step 5: Click Transfer — submit button with text 'Transfer Funds' (button[type=submit]) found"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'User is on Transfer Funds page' satisfied by page content"
+      ],
+      "invalid_reason": "",
+      "notes": "The External Account Number and Confirm External Account Number fields referenced in steps 3–4 do not appear in the static DOM; they are likely conditional (shown after selecting External Account). The trigger radio exists, so these steps are conditional/unverifiable from this snapshot but not flagged as invalid."
+    },
+    {
+      "tc_id": "TC-012",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Select My ParaBank Account — radio input#internal name='transferType' with label 'My ParaBank Account' found",
+        "step 2: Select source account — 'Select source account' combobox/button (role=combobox) found",
+        "step 3: Select destination account — 'Select destination account' combobox/button (role=combobox) found",
+        "step 4: Enter the exact available balance as transfer amount — input#amount (type=number) found",
+        "step 5: Click Transfer — submit button with text 'Transfer Funds' (button[type=submit]) found"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All UI elements required by the steps exist. Validation of exact-balance transfer and balance changes are runtime/back-end behaviours and cannot be verified from the static DOM."
+    },
+    {
+      "tc_id": "TC-018",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 3: Click Transfer again without changing inputs — submit button with text 'Transfer Funds' (button[type=submit]) found"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Steps 1–2 (complete a successful transfer and press browser Back) are multi-step/browser-state interactions and cannot be verified from this static DOM snapshot — marked as unverifiable"
+      ],
+      "invalid_reason": "",
+      "notes": "The page contains the Transfer button used in step 3. Steps that depend on prior successful submission and browser history are not verifiable from the snapshot and are therefore ignored for element existence checks; no UI elements referenced by the test are missing."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigation target found (link a[href='/bill-pay'] present and page appears to be Bill Pay)",
+        "step 2: Payee Name input found (input#payeeName)",
+        "step 2: Street Address input found (input#streetAddress)",
+        "step 2: City input found (input#city)",
+        "step 2: State selector trigger found (button[role='combobox'] text='Select state')",
+        "step 2: ZIP input found (input#zipCode)",
+        "step 2: Phone input found (input#phoneNumber)",
+        "step 3: Payee Account Number input found (input#payeeAccount)",
+        "step 3: Confirm Account Number input found (input#payeeAccountConfirm)",
+        "step 4: Payment Amount input found (input#paymentAmount type=number)",
+        "step 5: Source Account selector trigger found (button[role='combobox'] text='Select source account')",
+        "step 6: Pay action button found (button[type='submit'] text='Pay Bill')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable UI elements required by the happy-path steps exist on the Bill Pay page. Post-submit outcomes (success message, reference code, balance update) are dynamic and cannot be verified from the static DOM."
+    },
+    {
+      "tc_id": "TC-008",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Payee Account Number input found (input#payeeAccount)",
+        "step 2: Confirm Account Number input found (input#payeeAccountConfirm)",
+        "step 3: Pay action button found (button[type='submit'] text='Pay Bill')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Both account number fields and the Pay button exist. The expected inline validation message is a dynamic post-interaction result and cannot be validated from the static DOM."
+    },
+    {
+      "tc_id": "TC-009",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Source Account selector trigger found (button[role='combobox'] text='Select source account')",
+        "step 2: Payment Amount input found (input#paymentAmount type=number)",
+        "step 3: Pay action button found (button[type='submit'] text='Pay Bill')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition about the selected source account's balance (insufficient funds) cannot be verified from the static DOM"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required to perform the steps exist. The insufficient-funds error is a runtime/backend validation and is not verifiable from this snapshot."
+    },
+    {
+      "tc_id": "TC-012",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Payment Amount input found (input#paymentAmount type=number)",
+        "step 2: Source Account selector trigger found (button[role='combobox'] text='Select source account')",
+        "step 3: Pay action button found (button[type='submit'] text='Pay Bill')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition that a source account exists with an exact available balance matching the payment amount cannot be verified from the static DOM"
+      ],
+      "invalid_reason": "",
+      "notes": "Inputs and selectors required for the boundary test are present. Success and balance-change outcomes are dynamic and not verifiable here."
+    },
+    {
+      "tc_id": "TC-016",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1 (partial): Pay action button exists to submit the payment (button[type='submit'] text='Pay Bill')",
+        "step 3 (partial): Pay action button exists on the form (button[type='submit'] text='Pay Bill')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition about the source account having >=2× the payment amount cannot be verified from the static DOM"
+      ],
+      "invalid_reason": "",
+      "notes": "The Pay button required for submitting is present. However, the multi-step interaction (submit -> confirm success/reference -> press browser Back -> re-submit) and the uniqueness check after navigating back are runtime/browser-flow behaviours and cannot be verified from this static DOM snapshot; those steps are therefore unverifyable here."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Request Loan page is present (page title/body contains 'Request Loan' and nav link a[href='/loan'])",
+        "step 2: Auto loan radio found (input[type=radio] adjacent to h3 'Auto Loan')",
+        "step 3: Loan Amount input found (input#loanAmount)",
+        "step 4: Down Payment input found (input#downPayment)",
+        "step 5: Collateral account selector found (button[role=combobox] text='Select collateral account')",
+        "step 6: Submit button found (button[type=submit] text='Apply for Loan' — mapped to 'Request Loan')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition: 'Credit engine configured for approval' cannot be verified from the static page",
+        "Precondition: collateral account balance ≥ 20% cannot be verified from the static DOM (account list/balances not present)"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required by the steps (loan type radios, loanAmount, downPayment, collateral selector, submit) exist on the page. Credit-engine and account-balance preconditions are not verifiable from this snapshot."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Personal loan radio found (input[type=radio] adjacent to h3 'Personal Loan')",
+        "step 2: Loan Amount input found (input#loanAmount)",
+        "step 3: Down Payment input found (input#downPayment)",
+        "step 4: Submit button found (button[type=submit] text='Apply for Loan' — mapped to 'Request Loan')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition states user is on Request Loan page — the page is present in the DOM"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements referenced in the steps are present. Inline validation messages and submission outcome are dynamic and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Loan Amount input found (input#loanAmount)",
+        "step 2: Down Payment input found (input#downPayment)",
+        "step 3: Submit button found (button[type=submit] text='Apply for Loan' — mapped to 'Request Loan')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition: 'Loan Type is selected' cannot be confirmed from the static snapshot (radio controls exist and can be selected during test)",
+        "Validation outcome (inline error) is dynamic and not verifiable from DOM"
+      ],
+      "invalid_reason": "",
+      "notes": "Inputs and submit button required by the test exist. The precondition that a loan type is already selected is not observable in the static DOM but the radio controls are available to satisfy it at runtime."
+    },
+    {
+      "tc_id": "TC-017",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Home loan radio found (input[type=radio] adjacent to h3 'Home Loan')",
+        "step 2: Loan Amount input found (input#loanAmount)",
+        "step 3: Down Payment input found (input#downPayment)",
+        "step 4: Submit button found (button[type=submit] text='Apply for Loan' — mapped to 'Request Loan')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition: User is on Request Loan page — page is present"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required by the steps are present. Exact validation behavior (no error) after submission is dynamic and not verifiable from this snapshot."
+    },
+    {
+      "tc_id": "TC-021",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Loan type radios found (three input[type=radio] elements for Personal/Auto/Home)",
+        "step 2: Loan Amount input found (input#loanAmount)",
+        "step 3: Down Payment input found (input#downPayment)",
+        "step 4: Collateral account selector found (button[role=combobox] text='Select collateral account')",
+        "step 5: Submit button found (button[type=submit] text='Apply for Loan' — mapped to 'Request Loan')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition: existence of a collateral account with a specific balance (one unit below 20%) cannot be validated from the static DOM — account balances are not present",
+        "The specific selection of an under-collateralised account and the resulting inline error are dynamic and not verifiable from this snapshot"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI controls needed to perform the steps exist. Account balances and the edge-case precondition cannot be confirmed from the provided DOM."
+    },
+    {
+      "tc_id": "TC-004",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: First Name input found (input#firstName, name='firstName')",
+        "step 2: Last Name input found (input#lastName, name='lastName')",
+        "step 3: Update Profile button found (button[type=submit] text='Update Profile')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable UI elements (first name, last name inputs and Update Profile button) exist on the Profile page. Post-submit success message is dynamic and therefore not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: First Name input found and can be cleared (input#firstName)",
+        "step 2: Other fields referenced are present (streetAddress: input#streetAddress, city: input#city, state: combobox button with 'IL', zipCode: input#zipCode, phoneNumber: input#phoneNumber)",
+        "step 3: Update Profile button found (button[type=submit] text='Update Profile')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All required form controls are present so the steps are executable. The inline validation error and blocking behavior are dynamic and cannot be verified from the static DOM."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Phone Number input found (input#phoneNumber, name='phoneNumber')",
+        "step 2: Update Profile button found (button[type=submit] text='Update Profile')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Phone number input and submit button exist; entering an invalid format and observing inline validation is a runtime behavior and not verifiable in the static DOM."
+    },
+    {
+      "tc_id": "TC-012",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Last Name input found and can be cleared/edited (input#lastName)",
+        "step 2: Update Profile button found (button[type=submit] text='Update Profile')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The Last Name field and Update Profile button are present so the steps are executable. The expectation that whitespace-only input is treated as empty is a validation behavior and cannot be confirmed from the static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Card Type radios found (input[type=radio] with labels 'Debit Card' and 'Credit Card')",
+        "step 2: Account to Link control found (combobox/button text 'Select account')",
+        "step 3: Shipping Address input found (input#shippingAddress placeholder='Enter full shipping address')",
+        "step 4: Request Card button found (button[type=submit] text='Request Card')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'an account in good standing is available' cannot be confirmed from the static DOM — account selector exists but individual account option states are not present in the snapshot"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required to perform the request-card flow are present. The specific account state (good standing) is not verifiable from this static page."
+    },
+    {
+      "tc_id": "TC-008",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Card Type radios found (input[type=radio] with labels 'Debit Card' and 'Credit Card')",
+        "step 2: Account to Link control found (combobox/button text 'Select account')",
+        "step 3: Shipping Address input found (input#shippingAddress placeholder='Enter full shipping address')",
+        "step 4: Request Card button found (button[type=submit] text='Request Card')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'an account that is NOT in good standing exists and is selectable' cannot be confirmed from the static DOM — the account selector control exists but option details and their standing are not present"
+      ],
+      "invalid_reason": "",
+      "notes": "All referenced controls exist so the steps are executable; whether a non-good-standing account is present is not verifiable here."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Travel Notice fields present (Start Date and End Date inputs found as input[type=date])",
+        "step 2: Start Date and End Date inputs found (two input[type=date] elements available)",
+        "step 3: Update Controls button found (button type='submit' text='Update Controls')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card"
+      ],
+      "invalid_reason": "",
+      "notes": "Travel notice start/end date inputs and Update Controls button are present; validation logic (Start > End rejection) is dynamic and not verifiable from the snapshot."
+    },
+    {
+      "tc_id": "TC-014",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Travel Notice fields present (Start Date and End Date inputs found as input[type=date])",
+        "step 2: Start Date and End Date inputs found (two input[type=date] elements available)",
+        "step 3: Update Controls button found (button type='submit' text='Update Controls')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card"
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required to enter identical start/end dates and submit controls are present; acceptance of the edge case is behavior to be validated at runtime, not from the static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Investments navigation present (a[href='/investments'] exists; page content indicates Investments page).",
+        "step 2: Buy action radio exists (input#trade-Buy with label 'Buy').",
+        "step 3: Fund Symbol input exists (input placeholder='Search funds...'); autocomplete dropdown is dynamic (input presence verified).",
+        "step 4: Quantity input exists (input#tradeQty type=number).",
+        "step 5: Funding account selector exists (button role='combobox' text='Select account').",
+        "step 6: Execute Trade button exists (button[type='submit'] text='Execute Trade')."
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All UI elements required to perform a Buy trade are present on the Investments page. Post-submit outcomes (trade execution, order ID, holdings update) are dynamic and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-013",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Sell action radio exists (input#trade-Sell with label 'Sell').",
+        "step 2: Fund Symbol input exists (input placeholder='Search funds...').",
+        "step 3: Quantity input exists (input#tradeQty type=number) — entering an amount is possible (validation against holdings is dynamic).",
+        "step 4: Destination/funding account selector exists (button role='combobox' text='Select account').",
+        "step 5: Execute Trade button exists (button[type='submit'] text='Execute Trade')."
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires knowledge of the user's holding balance; the page does show a Portfolio Snapshot (holdings listed) but the exact balance verification is external to the static DOM."
+      ],
+      "invalid_reason": "",
+      "notes": "All form controls needed to attempt a Sell are present. The behavioral check for 'quantity exceeding balance' is a runtime/backend validation and cannot be verified from the static DOM."
+    },
+    {
+      "tc_id": "TC-014",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Recurring plan Fund Symbol selector exists (button role='combobox' text='Select fund').",
+        "step 2: Contribution Amount input exists (input#contribution type=number placeholder='25.00').",
+        "step 3: Frequency radios exist (input#freq-Weekly and input#freq-Monthly with labels 'Weekly'/'Monthly').",
+        "step 4: Start Date input exists (input#planStartDate type=date).",
+        "step 5: Funding account selector exists (button role='combobox' text='Select account' in plan section).",
+        "step 6: Create Plan button exists (button[type='submit'] text='Create Plan')."
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition states the Recurring Investment Plan form is visible — the DOM contains the Recurring Investment Plan fields, so the precondition is satisfied."
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements required to create a recurring plan (including start date) are present. The validation that a past date is rejected is a runtime behavior and cannot be confirmed from the static DOM."
+    },
+    {
+      "tc_id": "TC-023",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Buy action radio exists (input#trade-Buy with label 'Buy').",
+        "step 2: Fund Symbol input exists (input placeholder='Search funds...').",
+        "step 3: Quantity input exists (input#tradeQty type=number) — entering quantity is possible (calculation of total cost is runtime).",
+        "step 4: Funding account selector exists (button role='combobox' text='Select account').",
+        "step 5: Execute Trade button exists (button[type='submit'] text='Execute Trade')."
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires an account with exact buying power equal to trade cost; presence of account selector is verifiable but account balances are backend data not present in static DOM."
+      ],
+      "invalid_reason": "",
+      "notes": "All UI controls needed to place a boundary-case Buy are present. The exact-balance edge condition depends on runtime account data and backend validation, which cannot be verified here."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 2: Start Date input found (input#startDate) and End Date input found (input#endDate)",
+        "step 3: Account selector found (button[role=combobox] inner_text='Select account')",
+        "step 4: Generate Statement button found (button[type=submit] text='Generate Statement')"
+      ],
+      "invalid_steps": [
+        "step 1: 'Select Custom date range from Statement Period' — no Statement Period control or 'Custom date range' option found in DOM (no select/radio/group labeled Statement Period)"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Date inputs, account selector, and Generate button are present and actionable, but the test's first step (choosing a 'Custom date range' from a Statement Period control) references a control that does not exist on this page."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 2: Start Date input found (input#startDate) and End Date input found (input#endDate)",
+        "step 3: Generate Statement button found (button[type=submit] text='Generate Statement')"
+      ],
+      "invalid_steps": [
+        "step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Start/End date inputs and the Generate button are present so the date-entry and submission steps are executable; however the referenced 'Custom date range' selection control is not present in the DOM."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 2: Start Date input found (input#startDate) and End Date input found (input#endDate)",
+        "step 3: Generate Statement button found (button[type=submit] text='Generate Statement')"
+      ],
+      "invalid_steps": [
+        "step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The page exposes both date inputs and the Generate button so entering identical start/end dates and submitting is possible, but the test's explicit action to select a 'Custom date range' cannot be executed because that UI control is absent."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Change Password panel trigger found (div[type=button][aria-controls][aria-expanded] inner_text='Change Password ▲')",
+        "step 2: Current Password input found (input#currentPw[type=password])",
+        "step 3: New Password input found (input#newPw[type=password])",
+        "step 4: Confirm New Password input found (input#confirmPw[type=password])",
+        "step 5: Change Password submit button found (button[type=submit] text='Change Password')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All interactive elements required to perform the change-password flow are present and verifiable on the Security Settings page. The post-submit success notification is dynamic and therefore not checked here."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Current Password input found (input#currentPw[type=password])",
+        "step 2: New Password input found (input#newPw[type=password])",
+        "step 3: Confirm New Password input found (input#confirmPw[type=password])",
+        "step 4: Change Password submit button found (button[type=submit] text='Change Password')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All referenced form fields and the submit control exist. The expected inline error on incorrect current password is a dynamic post-submit outcome and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 2: Current Password input exists (input#currentPw[type=password]) — can be focused/edited",
+        "step 2: Change Password submit button exists (button[type=submit] text='Change Password')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Test precondition requires a prior successful password change and a visible success notification; the static DOM snapshot does not show any success message or evidence of a just-completed change, so the browser-back interaction and resulting state cannot be verified here.",
+        "Step 1 (press browser Back) is a navigation/history interaction and is UNVERIFIABLE from this static DOM snapshot."
+      ],
+      "invalid_reason": "",
+      "notes": "All UI elements referenced (inputs and submit button) exist, but the browser Back / prior-success state required for the full interaction is not verifiable from the provided snapshot."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Message Body textarea found (textarea#msgBody, placeholder='Describe your issue in detail...')",
+        "step 2: Send Message button found (button[type='submit'] text='Send Message')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable UI elements for sending a secure message are present on the Support Center page (message body and Send Message button). The post-submit success/ticket ID is dynamic and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-016",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Subject input found (input#msgSubject, placeholder='Brief description of your inquiry') and Message Body textarea found (textarea#msgBody)",
+        "step 2: Attachment control found (input#attachment, placeholder='filename.pdf') — an attachment input element exists in the DOM",
+        "step 3: Send Message button found (button[type='submit'] text='Send Message')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable controls referenced by the test exist (subject, message body, attachment input, and Send Message). The DOM shows an attachment input but does not explicitly declare its type as 'file' in the snapshot; selecting a file and server-side validation/error messages are dynamic and not verifiable from the static DOM."
+    }
+  ]
+}

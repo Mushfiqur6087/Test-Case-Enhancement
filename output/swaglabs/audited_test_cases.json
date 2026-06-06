@@ -1,0 +1,485 @@
+{
+  "test_cases": [
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Username input found (input#user-name, placeholder='Username')",
+        "step 2: Password input found (input#password, placeholder='Password')",
+        "step 3: Login button found (input#login-button type='submit' value='Login')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All referenced UI elements (username, password, login button) exist on the login page; post-submit outcomes are dynamic and not verified here."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Username input found (input#user-name) — can be emptied to satisfy 'field is empty' precondition",
+        "step 2: Password input found (input#password)",
+        "step 3: Login button found (input#login-button type='submit' value='Login')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable interactions exist. The expected inline validation message is dynamic (post-submit) and not checked against the static DOM."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Username input found (input#user-name)",
+        "step 2: Password input found (input#password)",
+        "step 3: Login button found (input#login-button type='submit' value='Login')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All steps reference existing inputs and the login button. The locked-out error banner is a dynamic post-submit result and not validated in the static DOM."
+    },
+    {
+      "tc_id": "TC-012",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Username input found (input#user-name) — accepts text including leading/trailing whitespace",
+        "step 2: Password input found (input#password)",
+        "step 3: Login button found (input#login-button type='submit' value='Login')"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Inputs and login button exist. Trimming behavior and authentication outcome are runtime behaviors and not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-015",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Username input found (input#user-name)",
+        "step 2: Password input found (input#password)",
+        "step 3: Login button found (input#login-button type='submit' value='Login')",
+        "step 4: Login button exists for the second click as well (same input#login-button) — clickable element present"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All referenced elements exist. The effects of a rapid double-submit (duplicate navigation or suppression) are runtime behaviors and not verifiable from the static DOM snapshot."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Product list present (multiple elements with data-test='inventory-item-name' found)",
+        "step 2: Product name link found (anchors like a#item_4_title_link data-test='item-4-title-link', item-0..item-5 title links exist)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable steps map to elements on the inventory page: product rows and title links exist and can be clicked to open product details."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Target product row can be located (inventory items present with data-test='inventory-item-name')",
+        "step 2: 'Add to cart' button exists in product rows (buttons with data-test like 'add-to-cart-sauce-labs-backpack', 'add-to-cart-sauce-labs-bike-light', etc.)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Elements required to add a product from the list are present (product rows and Add to cart buttons). Post-click outcomes are dynamic and thus not verified here."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 1: Target product row can be located (inventory item name elements present)"
+      ],
+      "invalid_steps": [
+        "step 2: 'Remove' button in the product row not found anywhere in the DOM — only 'Add to cart' buttons are present (no data-test or id matching Remove buttons)"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires the target product to be in InCart state, but the current page shows NotInCart state for products (all visible buttons are 'Add to cart')"
+      ],
+      "invalid_reason": "",
+      "notes": "The product rows exist, but the expected 'Remove' action/button for an InCart item is not present on this snapshot, so the step to click Remove is not executable here."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Inventory page is accessible and displays product list and sort controls (select[data-test='product-sort-container'], product items and names present)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects the user to be unauthenticated and redirected to Login, but the inventory page is visible in this snapshot (page appears to be loaded with products — session likely authenticated)"
+      ],
+      "invalid_reason": "",
+      "notes": "Step to open the inventory URL is executable, but the precondition (unauthenticated => redirect) does not match the observed page state."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 1: Product Inventory page is present (inventory items and sort control exist)",
+        "step 3: Action buttons can be inspected — 'Add to cart' buttons are present in rows (buttons with data-test='add-to-cart-*')",
+        "step 4: 'Add to cart' button is present and clickable in the current snapshot (buttons exist to attempt clicking)"
+      ],
+      "invalid_steps": [
+        "step 2: Cannot locate a product row that is in an InCart state on this page — no 'Remove' buttons or indicators of InCart items are present in the DOM"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires an InCart product to exist, but the snapshot shows all products in NotInCart state (only 'Add to cart' buttons present)"
+      ],
+      "invalid_reason": "",
+      "notes": "The page allows inspecting and clicking Add to cart buttons, but the test's scenario that a product is already InCart is not represented in this DOM; therefore the step to find an InCart row is not executable."
+    },
+    {
+      "tc_id": "TC-008",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Product P can be located (inventory item elements with data-test='inventory-item-name' exist)",
+        "step 2: 'Add to cart' button for product P exists (button with data-test='add-to-cart-*' present)",
+        "step 3: Second click action is executable because the same 'Add to cart' button element is present and can be clicked again (interaction exists in the UI)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All UI elements required for the double-click interaction are present (the Add to cart button). Behavioral outcomes (exact badge increment handling) are dynamic and not asserted here."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: 'Add to cart' button for product A exists (buttons with data-test='add-to-cart-*' present for multiple distinct products)",
+        "step 2: 'Add to cart' button for product B exists",
+        "step 3: 'Add to cart' button for product C exists"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Multiple distinct 'Add to cart' buttons are present and can be clicked in rapid succession. Correctness of badge increments is a runtime behavior and not verified from the static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 1: Product Detail page is reachable / open (verified by presence of Back to products button data-test='back-to-products')"
+      ],
+      "invalid_steps": [
+        "step 2: 'Add to cart' button not found anywhere in the DOM — only a 'Remove' button (button[data-test='remove'|id='remove']) is present"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects product in NotInCart state, but the page shows a 'Remove' button (product appears to be InCart)"
+      ],
+      "invalid_reason": "",
+      "notes": "The page is the Product Detail page, but there is no Add to cart button to click — the product is already InCart (Remove button present)."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Product Detail page is reachable / open (Back to products button data-test='back-to-products' exists)",
+        "step 2: Click the Remove button — 'Remove' button is present (button[data-test='remove'|id='remove'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The Remove button exists on the Product Detail page and can be clicked; verifiable steps are present."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Click the Back to products link — 'Back to products' control is present (button[data-test='back-to-products'|id='back-to-products'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The Back to products control exists on the page and the navigation action is executable."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Open Product Detail page for an InCart product — page shows 'Remove' button (button[data-test='remove'|id='remove']), satisfying the InCart precondition",
+        "step 2: Look for an Add to cart button — verified: Add to cart button is NOT present in the DOM (absence confirmed)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The page shows Remove (product InCart); the Add to cart button is absent as the test expects for this negative case. The conditional click step is not executed because Add to cart is not visible."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Open Product Detail page for a product — Product Detail page is present (Back to products button exists)",
+        "step 2: Look for a Remove button — 'Remove' button is present in the DOM (button[data-test='remove'|id='remove'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects the product to be NotInCart, but the page currently shows a Remove button (product appears to be InCart)"
+      ],
+      "invalid_reason": "",
+      "notes": "The Remove button is present despite the test's NotInCart precondition — this is a precondition mismatch rather than a missing UI element."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 4: Navigate to the Shopping Cart — cart link/icon present (a[data-test='shopping-cart-link'] exists)"
+      ],
+      "invalid_steps": [
+        "step 1: Verify Add to cart button — Add to cart button not found in DOM (page shows Remove instead)",
+        "step 2: Click the Add to cart button — cannot perform because Add to cart button is absent",
+        "step 3: Immediately click the Add to cart button again — cannot perform because Add to cart button is absent"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects product in NotInCart, but page shows Remove (product appears to be InCart)"
+      ],
+      "invalid_reason": "",
+      "notes": "Cart icon exists, but the Add to cart button required for the rapid-click steps is missing so those steps are not executable."
+    },
+    {
+      "tc_id": "TC-009",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 1 (partial): Cart icon is visible (a[data-test='shopping-cart-link'] present)",
+        "step 3: Click the Cart icon — cart link/button is present and clickable (a[data-test='shopping-cart-link'])"
+      ],
+      "invalid_steps": [
+        "step 1 (partial): 'Add to cart' button is not present in the DOM (page shows Remove instead)",
+        "step 2: Click the Add to cart button — cannot perform because Add to cart button is absent"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects product NotInCart, but the page displays a Remove button (product appears InCart)"
+      ],
+      "invalid_reason": "",
+      "notes": "The cart icon is available and clickable, but the Add to cart button referenced in the rapid-interaction steps is not present, so those steps are not executable."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "invalid_steps",
+      "valid_steps": [
+        "step 2: Immediately click the Back to products link — 'Back to products' control exists (button[data-test='back-to-products'])"
+      ],
+      "invalid_steps": [
+        "step 1: Click the Add to cart button — Add to cart button not found in DOM (page shows Remove instead)",
+        "step 3: From Product Inventory, navigate back to the same Product Detail page — multi-step navigation cannot be fully verified from this static snapshot (treated as state-dependent/unverifiable for final verification)"
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition expects product NotInCart, but the page displays a Remove button (product appears InCart)"
+      ],
+      "invalid_reason": "",
+      "notes": "Back to products exists, but the initial Add to cart action is not possible because the Add to cart button is absent; the multi-step navigation back to detail is outside static DOM verification."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Cart row / item entry found (inventory item name element data-test='inventory-item-name' / link id='item_4_title_link')",
+        "step 2: Remove button found (button[data-test='remove-sauce-labs-backpack' id='remove-sauce-labs-backpack'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "All verifiable steps reference elements present on the page (item row and Remove button). The post-action result (item disappearance) is dynamic and not checked here."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Continue Shopping control found (button[data-test='continue-shopping' id='continue-shopping'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "The Continue Shopping button exists on the cart page. Navigation result to Inventory is a runtime behavior and not verifiable from static DOM."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Checkout button found (button[data-test='checkout' id='checkout'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Checkout button is present on the cart page. The subsequent checkout flow is dynamic and not verified from this snapshot."
+    },
+    {
+      "tc_id": "TC-004",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Shopping Cart page is present (page shows cart contents and cart actions in the DOM)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires the user to be unauthenticated, but the snapshot shows a populated cart with actions (Remove, Continue Shopping, Checkout) — indicating an authenticated/session state inconsistent with the test precondition."
+      ],
+      "invalid_reason": "",
+      "notes": "The page and cart elements referenced by the test are present. However, the test's precondition (unauthenticated user) does not match the current page state, so the expected redirect/blocked access cannot be validated here."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Shopping Cart page is present (page shows cart contents)",
+        "step 2: Checkout button found (button[data-test='checkout' id='checkout'])"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires the user to be unauthenticated, but the snapshot shows a populated cart and checkout action (indicating an authenticated/session state)."
+      ],
+      "invalid_reason": "",
+      "notes": "Both navigation to the cart (page present) and the Checkout button exist. Because the page indicates an authenticated session, the negative expectation (checkout blocked for unauthenticated users) cannot be validated from this snapshot."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Shopping Cart page is present (cart area and item list visible)",
+        "step 2: Cart row for the product is present (inventory item name / description elements present)",
+        "step 3: Description cell/text is present (product description text exists in DOM)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requests a product with a 200+ character description; the visible product description in the snapshot appears much shorter and does not meet the 200+ character requirement."
+      ],
+      "invalid_reason": "",
+      "notes": "All referenced UI elements (cart row and description cell) are present. The specific precondition (200+ character description) is not met in this snapshot, and the visual behavior (ellipsis/truncation) is a runtime/render check not verifiable from static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "invalid_steps",
+      "valid_steps": [],
+      "invalid_steps": [
+        "step 1: Page with a Logout option is not present — no 'Logout' link/button found in the DOM (current page is the Login page).",
+        "step 2: 'Click the Logout button' cannot be executed — no Logout control exists on this page."
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition says user is logged in, but the current page shows the Login screen (Username and Password inputs and a Login button are present) — user appears unauthenticated."
+      ],
+      "invalid_reason": "",
+      "notes": "The test assumes an authenticated session and a visible Logout control, but the snapshot is the Login page. Logout-related steps reference elements that are absent."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "invalid_steps",
+      "valid_steps": [],
+      "invalid_steps": [
+        "step 1: 'Click the Logout button' cannot be executed — no Logout control found in the DOM (page shows Login form instead)."
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition says user is logged in, but the current page is the Login page (Username/Password inputs and Login button present) — user is not authenticated in this snapshot."
+      ],
+      "invalid_reason": "",
+      "notes": "The step to click Logout is not executable because the Logout element is not present on the Login page. The navigation to protected URLs is a direct-URL action and is not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-004",
+      "verdict": "valid",
+      "valid_steps": [],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Precondition (user not logged in) matches the captured Login page. The single step (navigate directly to the Logout endpoint URL) is a browser navigation action and cannot be validated against static DOM elements, but it does not reference any missing UI control — therefore no verifiable step fails."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Precondition (user on Login page after logout) matches the snapshot. Steps are direct navigation and observation actions (navigate to inventory URL / observe redirection) that cannot be verified from the static DOM and do not reference missing UI elements."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "invalid_steps",
+      "valid_steps": [],
+      "invalid_steps": [
+        "step 1: 'Click the Logout button' cannot be executed — no Logout control found in the DOM (page displays the Login form instead)."
+      ],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition requires the user to be logged in and on a protected page, but the current snapshot is the Login page (Username and Password inputs and Login button present) — precondition not met."
+      ],
+      "invalid_reason": "",
+      "notes": "The logout click cannot be performed because the Logout element is not present; subsequent browser-back interactions are runtime behaviors and are not verifiable from the static DOM."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Page contains the 'Reset App State' menu item (left navigation/menu visible with text 'Reset App State')",
+        "step 2: 'Reset App State' menu item is a clickable UI element present on the page (can be clicked)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Both steps reference the visible 'Reset App State' menu item which exists. The page also shows product tiles in the InCart state (Remove buttons), supporting the test precondition."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Page contains the 'Reset App State' menu item (left navigation/menu visible with text 'Reset App State')",
+        "step 2: 'Reset App State' menu item is a clickable UI element present on the page (can be clicked)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [
+        "Precondition states user is not authenticated, but the page shows an authenticated session (visible 'Logout' menu item and product Remove buttons indicate signed-in state). The negative precondition does not match the current page."
+      ],
+      "invalid_reason": "",
+      "notes": "The UI elements referenced by the steps exist, but the page state indicates a logged-in user, so the negative precondition cannot be validated here."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: 'Reset App State' menu item is present and clickable",
+        "step 2: The same 'Reset App State' menu item can be clicked again (element exists for immediate consecutive clicks)"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Both click steps are executable because the 'Reset App State' control is present. Outcome-related expectations (single reset effect, no duplicate adverse effects) are dynamic and not verifiable from the static DOM."
+    }
+  ]
+}

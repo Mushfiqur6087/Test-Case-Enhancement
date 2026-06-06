@@ -2,22 +2,22 @@
 
 | | |
 |---|---|
-| **URL** | http://localhost:8080 |
+| **URL** | http://localhost:8080/ |
 | **Spec file** | `datasets/parabank/Parabank.md` |
-| **Date** | 2026-06-05 |
-| **Overall score** | **89 / 100** |
+| **Date** | 2026-06-06 |
+| **Overall score** | **93 / 100** |
 
 ## Summary
 
 | Verdict | Count |
 |---------|-------|
-| ✅ Pass    | 12 |
-| ⚠️  Partial | 1 |
+| ✅ Pass    | 13 |
+| ⚠️  Partial | 0 |
 | ❌ Fail    | 0 |
 | ⏭️  Skipped | 0 |
 | **Total** | **13** |
 
-LLM calls used: 73
+LLM calls used: 61
 
 ---
 
@@ -25,43 +25,52 @@ LLM calls used: 73
 
 ### ✅ Login — PASS (90/100)
 
-**Page visited:** `http://localhost:8080/login` — *online-banking-suite*
+**Page visited:** `http://localhost:8080/` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Email/Username input field present (id='username')
-- Password input field present (id='password')
-- Sign In submit button present (inner_text='Sign In')
-- Forgot Password? link present (href='/forgot-password')
-- Register link present (href='/register')
-- Page heading 'Sign In' visible
+- Email/Username input field present with placeholder
+- Password input field present with placeholder
+- Sign In submit button present labeled 'Sign In'
+- Forgot Password? link present with href '/forgot-password'
+- Register here link present with href '/register'
 
-*All statically verifiable login form elements are present. Client-side validation rules and authentication behaviors (flash messages, redirects, clearing password) are dynamic and not verifiable from this static snapshot.*
+*Core login form inputs and primary actions (Sign In button and Forgot Password link) are present. Dynamic behaviors (validation, authentication messages, redirects) cannot be verified in this static snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-008** ✅ VALID
+- **TC-009** ✅ VALID
+- **TC-014** ✅ VALID
 
 ---
 
-### ✅ Register — PASS (90/100)
+### ✅ Register — PASS (95/100)
 
 **Page visited:** `http://localhost:8080/register` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- First Name input field present (id='firstName')
-- Last Name input field present (id='lastName')
-- Street Address input field present (id='streetAddress')
-- City input field present (id='city')
-- State dropdown/combobox control present (Select state)
-- ZIP Code input present with placeholder '12345'
-- Phone Number input present with example placeholder
-- Social Security Number input present with placeholder
-- Username input present with type='email' (username)
-- Password input present (type='password')
-- Confirm Password input present (type='password')
-- Register submit button present with text 'Register'
-- Sign in link present pointing to /login
+- First Name input field
+- Last Name input field
+- Street Address input field
+- City input field
+- State dropdown/combobox control
+- ZIP Code input (placeholder 12345)
+- Phone Number input (placeholder (123) 456-7890)
+- Social Security Number input (placeholder 123-45-6789)
+- Username input (type=email, placeholder)
+- Password input field
+- Confirm Password input field
+- Register submit button
 
-**✘ Missing (spec says it should exist, not found in DOM):**
-- Dropdown options for State (full list of US states) not found in DOM
+*All required form inputs and the Register button are present in the static DOM. Dynamic behaviors (auto-formatting, validation enforcement, and post-submit success/redirect) cannot be verified from this snapshot.*
 
-*All required input fields and the Register button are present and labeled; the state control exists but the snapshot does not include the full list of US state options to verify.*
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-006** ✅ VALID
+- **TC-010** ✅ VALID
+- **TC-017** ✅ VALID
 
 ---
 
@@ -70,57 +79,81 @@ LLM calls used: 73
 **Page visited:** `http://localhost:8080/dashboard` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Welcome message showing user's name John Doe
-- Page heading Accounts Overview present
-- Account table with columns Account Number Account Type
-- Clickable masked account numbers (e.g. ****5001)
-- Account types shown Checking Savings Credit Card Loan
-- Current balances present for each account row
-- Status Active badges visible in each row
-- Open dates shown (e.g. Jan 15, 2023)
-- Footer totals: Total Assets Liabilities Net Worth
-- Rows ordered earliest-to-latest by open date
+- Welcome message with user's name
+- Accounts Overview heading present
+- Account table present under 'Your Accounts'
+- Masked, clickable account numbers (e.g. ****5001)
+- Account Type column (Checking, Savings, etc.)
+- Current Balance values shown for each row
+- Status column showing 'Active' for each account
+- Open Date column present for each account
+- Footer totals and Total Balance displayed
+- Rows ordered by open date (earliest first)
 
-*The dashboard implements the Accounts Overview as specified: welcome with user name, masked clickable account numbers, account type, balances, Active status badges, open dates, footer totals, and rows ordered earliest-first. No required static elements from the spec are missing.*
+*The page includes the welcome message, masked clickable account numbers, account type, balances, Active status badges, open dates, ordered rows, and footer totals matching the spec.*
+
+#### Test Case Verification
+
+- **TC-003** ✅ VALID
+- **TC-008** ❌ INVALID
+  - 🛑 Precondition says user is unauthenticated, but the live page shows an authenticated dashboard (Welcome back, John Doe and account data visible) — the test cannot be executed under the stated precondition
+- **TC-012** ⚠️ INVALID_STEPS
+  - ❌ step 2: Row with zero balance not found anywhere in the DOM — no account with a zero Current Balance is present in the snapshot
+  - 🛑 Precondition requires at least one account with Current_Balance = 0; the live page contains negative balances but no zero balance row
 
 ---
 
-### ✅ Open New Account — PASS (90/100)
+### ✅ Open New Account — PASS (95/100)
 
 **Page visited:** `http://localhost:8080/open-account` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Checking account card with radio input
-- Savings account card with radio input
-- Minimum deposit: $25.00 (Checking)
-- Minimum deposit: $100.00 (Savings)
-- Initial Deposit Amount input (id=initialDeposit)
-- Funding Source Account combobox labeled 'Select funding source'
-- Open Account submit button
-- Hidden input name='accountType'
+- Checking account card (Minimum deposit: $25.00)
+- Savings account card (Minimum deposit: $100.00)
+- Radio inputs for account type selection
+- Initial Deposit Amount numeric input (id='initialDeposit')
+- Funding Source Account combobox/dropdown (Select funding source)
+- "Open Account" submit button
 
-*All required static UI elements for 'Open New Account' are present (account type cards, min deposits, deposit input, funding source selector, submit). Dynamic behaviors (validation, balance checks, success message/redirect) are not verifiable from this static snapshot.*
+*All required static UI elements for opening a new account are present (account type cards, deposit input, funding source selector, submit). Runtime behaviors (validations, success message, redirect) are dynamic and not verifiable in this static snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-011** ✅ VALID
+- **TC-016** ✅ VALID
+- **TC-018** ✅ VALID
 
 ---
 
-### ⚠️ Transfer Funds — PARTIAL (65/100)
+### ✅ Transfer Funds — PASS (85/100)
 
 **Page visited:** `http://localhost:8080/transfer` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Transfer Amount input present (id='amount')
-- From Account dropdown present ('Select source account')
-- Transfer To radio 'My ParaBank Account' present
-- Transfer To radio 'External Account' present
-- To Account dropdown present ('Select destination account')
-- Submit button 'Transfer Funds' present
-- Page URL '/transfer' reached
+- Transfer Amount numeric input
+- From Account selector (combobox)
+- Radio button: My ParaBank Account
+- Radio button: External Account
+- To Account selector (combobox)
+- Transfer Funds submit button
 
 **✘ Missing (spec says it should exist, not found in DOM):**
-- External account number input field for External Account
-- Confirm external account number input field for External Account
+- External account number input field for external transfers
+- Confirm external account number input field for external transfers
 
-*The page contains the main transfer form controls (amount, source/destination selectors, transfer-type radios, submit). However the UI elements required for external transfers (enter/confirm external account number) are not present, so the spec is only partially implemented.*
+*Core transfer form elements (amount, source selector, transfer-type radios, destination selector, submit) are present. Fields specific to external-transfer entry/confirmation are not found in the static DOM.*
+
+#### Test Case Verification
+
+- **TC-002** ✅ VALID
+  - 🛑 Precondition 'User is logged in' satisfied by page text 'Welcome back, John Doe' and 'Log Out' button
+- **TC-009** ✅ VALID
+- **TC-011** ✅ VALID
+  - 🛑 Precondition 'User is on Transfer Funds page' satisfied by page content
+- **TC-012** ✅ VALID
+- **TC-018** ✅ VALID
+  - 🛑 Steps 1–2 (complete a successful transfer and press browser Back) are multi-step/browser-state interactions and cannot be verified from this static DOM snapshot — marked as unverifiable
 
 ---
 
@@ -129,41 +162,65 @@ LLM calls used: 73
 **Page visited:** `http://localhost:8080/bill-pay` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Payee Name input present (id='payeeName')
-- Street Address input present (id='streetAddress')
-- City input field present (id='city')
-- State selector present (combobox 'Select state')
-- ZIP Code input present (id='zipCode')
-- Phone Number input present (id='phoneNumber')
-- Payee Account Number input present (id='payeeAccount')
-- Confirm Account Number input present (id='payeeAccountConfirm')
-- Payment Amount numeric input present (id='paymentAmount')
-- Source Account selector present (combobox 'Select source account')
-- Pay button present (type='submit' inner_text='Pay Bill')
+- Payee Name input (id=payeeName)
+- Street Address input (id=streetAddress)
+- City input (id=city)
+- State select combobox (role=combobox)
+- ZIP Code input (id=zipCode)
+- Phone Number input (id=phoneNumber)
+- Payee Account Number input (id=payeeAccount)
+- Confirm Account Number input (id=payeeAccountConfirm)
+- Payment Amount numeric input (id=paymentAmount)
+- Source Account dropdown (combobox)
+- Submit button labeled 'Pay Bill'
 
-*The bill-pay form fields and Pay button required by the Payments spec are present on /bill-pay. Dynamic behaviors (validation, submission success, balance updates) are not verifiable from the static DOM snapshot.*
+*All required static form fields and the Pay button are present on the /bill-pay page. Dynamic behaviors (validation, funds check, success message, balance updates) cannot be verified from the static DOM snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-008** ✅ VALID
+- **TC-009** ✅ VALID
+  - 🛑 Precondition about the selected source account's balance (insufficient funds) cannot be verified from the static DOM
+- **TC-012** ✅ VALID
+  - 🛑 Precondition that a source account exists with an exact available balance matching the payment amount cannot be verified from the static DOM
+- **TC-016** ✅ VALID
+  - 🛑 Precondition about the source account having >=2× the payment amount cannot be verified from the static DOM
 
 ---
 
-### ✅ Request Loan — PASS (85/100)
+### ✅ Request Loan — PASS (90/100)
 
 **Page visited:** `http://localhost:8080/loan` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Request Loan page heading present
-- Personal, Auto, Home loan cards visible
-- Interest rates and amount ranges shown on cards
+- Request Loan heading and description
+- Personal loan card with rate and range
+- Auto loan card with rate and range
+- Home loan card with rate and range
 - Radio inputs for selecting loan type
-- Loan Amount numeric input present
-- Down Payment numeric input present
-- Collateral account dropdown (combobox) present
-- Apply for Loan submit button present
-- Loan Application section and explanatory text present
+- Loan Amount input (id=loanAmount)
+- Down Payment input (id=downPayment)
+- Collateral account combobox button
+- Apply for Loan submit button
 
-**⚡ Mismatches (DOM contradicts the spec):**
-- loanAmount input has min='100' (general) — does not reflect type-specific min/max ranges required by spec
+*Core UI elements required by the spec are present (loan type cards, rates/ranges, loan amount, down payment, collateral selector, submit). Runtime validations, approval engine behavior and success/denial messages are not verifiable in this static snapshot.*
 
-*The page implements the static UI for Request Loan (cards, fields, dropdown, submit). Dynamic validations, approval simulation, and success/denial messages are not present in the static snapshot and were not evaluated per testing rules.*
+#### Test Case Verification
+
+- **TC-002** ✅ VALID
+  - 🛑 Precondition: 'Credit engine configured for approval' cannot be verified from the static page
+  - 🛑 Precondition: collateral account balance ≥ 20% cannot be verified from the static DOM (account list/balances not present)
+- **TC-007** ✅ VALID
+  - 🛑 Precondition states user is on Request Loan page — the page is present in the DOM
+- **TC-010** ✅ VALID
+  - 🛑 Precondition: 'Loan Type is selected' cannot be confirmed from the static snapshot (radio controls exist and can be selected during test)
+  - 🛑 Validation outcome (inline error) is dynamic and not verifiable from DOM
+- **TC-017** ✅ VALID
+  - 🛑 Precondition: User is on Request Loan page — page is present
+- **TC-021** ✅ VALID
+  - 🛑 Precondition: existence of a collateral account with a specific balance (one unit below 20%) cannot be validated from the static DOM — account balances are not present
+  - 🛑 The specific selection of an under-collateralised account and the resulting inline error are dynamic and not verifiable from this snapshot
 
 ---
 
@@ -172,39 +229,56 @@ LLM calls used: 73
 **Page visited:** `http://localhost:8080/profile` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Page heading 'Update Contact Info' visible
-- First Name input pre-filled with 'John'
-- Last Name input pre-filled with 'Doe'
-- Street Address input pre-filled '123 Main Street'
-- City input pre-filled with 'Springfield'
-- State control showing 'IL' selected
-- ZIP Code input pre-filled with '62701'
-- Phone Number input pre-filled '(555) 123-4567'
+- Personal Information heading present
+- First Name input pre-filled
+- Last Name input pre-filled
+- Street Address input pre-filled
+- City input pre-filled
+- State combobox showing IL
+- ZIP Code input pre-filled
+- Phone Number input pre-filled
 - Update Profile submit button present
 
-*The page implements the editable contact form with all required fields pre-filled and an Update Profile button. Dynamic behaviors (validation, success/failure messages and highlighting) cannot be verified from this static snapshot.*
+*All required form fields and the Update Profile button are present and pre-filled as specified. Dynamic behaviors (validation messages and success banner) cannot be verified from the static DOM snapshot.*
+
+#### Test Case Verification
+
+- **TC-004** ✅ VALID
+- **TC-005** ✅ VALID
+- **TC-007** ✅ VALID
+- **TC-012** ✅ VALID
 
 ---
 
-### ✅ Manage Cards — PASS (90/100)
+### ✅ Manage Cards — PASS (95/100)
 
 **Page visited:** `http://localhost:8080/cards` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Manage Cards heading visible
-- Your Cards list with debit/credit
-- Card Type radios: Debit and Credit
-- Account to Link dropdown 'Select account'
-- Shipping Address input present
-- 'Request Card' submit button present
-- Select Existing Card dropdown present
-- New Spending Limit numeric input present
-- Travel Notice start and end date inputs
-- Travel destination input placeholder present
-- Card Status radios: Active and Frozen
-- 'Update Controls' submit button present
+- Card Type radio options (Debit/Credit)
+- Account to Link select (Select account)
+- Shipping Address input (placeholder present)
+- Request Card submit button
+- Select Existing Card dropdown (Select card)
+- New Spending Limit numeric input (id=spendingLimit)
+- Travel Notice start date input
+- Travel Notice end date input
+- Travel Notice destination input
+- Card Status radio options (Active, Frozen)
+- Update Controls submit button
 
-*The page contains both the Request New Card and Card Controls forms with the required fields and buttons as specified. Dynamic behaviors (validation messages, success messages, backend checks) are not present in the static DOM and therefore not verifiable here.*
+*All core static form elements for both the Request New Card and Card Controls sections are present. Dynamic behaviors and success/validation messages are not verifiable from this static DOM snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+  - 🛑 Precondition 'an account in good standing is available' cannot be confirmed from the static DOM — account selector exists but individual account option states are not present in the snapshot
+- **TC-008** ✅ VALID
+  - 🛑 Precondition 'an account that is NOT in good standing exists and is selectable' cannot be confirmed from the static DOM — the account selector control exists but option details and their standing are not present
+- **TC-010** ✅ VALID
+  - 🛑 Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card
+- **TC-014** ✅ VALID
+  - 🛑 Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card
 
 ---
 
@@ -213,91 +287,106 @@ LLM calls used: 73
 **Page visited:** `http://localhost:8080/investments` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Heading: Investments
-- Portfolio Snapshot panel present
-- Total Market Value displayed
-- Unrealised Gain/Loss displayed
-- Holdings table with VTSAX VTIAX
-- Trade Action radios Buy/Sell
-- Fund Symbol search input
-- Quantity input (min=0.01)
-- Funding Account select (trade)
-- Execute Trade button
-- Recurring Plan fund select
-- Contribution Amount input (min=25)
-- Frequency radios Weekly Monthly
-- Start Date input
-- Create Plan button
+- Portfolio Snapshot panel with holdings table
+- Total Market Value displayed ($22,834.23)
+- Unrealised Gain/Loss displayed (+$396.98)
+- Holdings rows for VTSAX and VTIAX with market values
+- Trade Funds action radios (Buy and Sell)
+- Fund Symbol autocomplete / search input and combobox
+- Quantity numeric input (id=tradeQty, min/step present)
+- Funding Account combobox (Select account)
+- Execute Trade submit button
+- Recurring Investment Plan form fields and Create Plan button
+- Contribution Amount input (id=contribution, min=25)
+- Frequency radios (Weekly, Monthly) and Start Date input
 
-*All statically verifiable Investments page elements from the spec are present (portfolio snapshot, trade form fields, recurring plan fields). Dynamic behaviors (validation messages, execution confirmation) cannot be verified from this static snapshot.*
+*All core Investments features (portfolio snapshot, trade form, recurring plan form and required inputs/buttons) are present in the static DOM. Runtime validation behaviors and success/error messages are dynamic and not verifiable from the snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-013** ✅ VALID
+  - 🛑 Precondition requires knowledge of the user's holding balance; the page does show a Portfolio Snapshot (holdings listed) but the exact balance verification is external to the static DOM.
+- **TC-014** ✅ VALID
+  - 🛑 Precondition states the Recurring Investment Plan form is visible — the DOM contains the Recurring Investment Plan fields, so the precondition is satisfied.
+- **TC-023** ✅ VALID
+  - 🛑 Precondition requires an account with exact buying power equal to trade cost; presence of account selector is verifiable but account balances are backend data not present in static DOM.
 
 ---
 
-### ✅ Account Statements — PASS (95/100)
+### ✅ Account Statements — PASS (90/100)
 
 **Page visited:** `http://localhost:8080/statements` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Page heading 'Account Statements' present
-- Generate Statement section heading present
-- Account dropdown (Select account combobox)
-- Start Date input (id='startDate')
-- End Date input (id='endDate')
-- Generate Statement button present
-- e-Statement Preferences heading present
-- Paperless checkbox (id='paperless') with label
-- Email Address input (type='email' id='prefEmail')
-- Save Preference button present
+- Page heading 'Account Statements'
+- Account selection combobox ('Select account')
+- Start Date input (type=date, id='startDate')
+- End Date input (type=date, id='endDate')
+- 'Generate Statement' submit button
+- Paperless opt-in checkbox (role='checkbox', id='paperless')
+- Email Address input (type=email, id='prefEmail')
+- 'Save Preference' submit button
 
-*Both coordinated forms and all required static controls (account selector, date range inputs, checkbox, email field, and buttons) are present; dynamic validation/messages are not verifiable in this static snapshot.*
+*Both coordinated forms and all required static inputs/buttons from the spec are present (custom date range used for statement period). Dynamic validation messages and success/failure alerts are not verifiable in this static snapshot.*
+
+#### Test Case Verification
+
+- **TC-002** ⚠️ INVALID_STEPS
+  - ❌ step 1: 'Select Custom date range from Statement Period' — no Statement Period control or 'Custom date range' option found in DOM (no select/radio/group labeled Statement Period)
+- **TC-007** ⚠️ INVALID_STEPS
+  - ❌ step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM
+- **TC-011** ⚠️ INVALID_STEPS
+  - ❌ step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM
 
 ---
 
-### ✅ Security Settings — PASS (90/100)
+### ✅ Security Settings — PASS (95/100)
 
 **Page visited:** `http://localhost:8080/security` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Security Settings heading present
-- Collapsible panel titled 'Change Password' (open)
-- Current Password input (id='currentPw')
-- New Password input (id='newPw')
-- Confirm New Password input (id='confirmPw')
-- Change Password submit button present
+- Collapsible panel header 'Change Password ▲'
+- Security Settings page heading present
+- Input: Current Password (type=password, id=currentPw)
+- Input: New Password (type=password, id=newPw)
+- Input: Confirm New Password (type=password, id=confirmPw)
+- Submit button 'Change Password' (type=submit)
+- Panel shown as open (aria-expanded/data-state attributes)
 
-**✘ Missing (spec says it should exist, not found in DOM):**
-- HTML <form> element wrapping the change-password inputs
+*Core change-password form and collapsible panel are present with the three password fields and submit button; dynamic behaviors (verification, validation, success messages) are not verifiable from the static DOM.*
 
-*The page shows the Security Settings section with a collapsible Change Password panel and the three password inputs plus submit button. Dynamic behaviors (password verification, strength enforcement, success message, field highlighting) are not verifiable from the static DOM and were not checked.*
+#### Test Case Verification
+
+- **TC-001** ✅ VALID
+- **TC-006** ✅ VALID
+- **TC-010** ✅ VALID
+  - 🛑 Test precondition requires a prior successful password change and a visible success notification; the static DOM snapshot does not show any success message or evidence of a just-completed change, so the browser-back interaction and resulting state cannot be verified here.
+  - 🛑 Step 1 (press browser Back) is a navigation/history interaction and is UNVERIFIABLE from this static DOM snapshot.
 
 ---
 
-### ✅ Support Center — PASS (80/100)
+### ✅ Support Center — PASS (95/100)
 
 **Page visited:** `http://localhost:8080/support` — *online-banking-suite*
 
 **✔ Matches (spec requirements found in live UI):**
-- Support Center heading and subheading present
-- Secure Message panel with subject field present
-- Subject input field id='msgSubject' present
-- Category dropdown control present (closed state)
-- Message body textarea id='msgBody' present
-- Attachment input and accepted types text present
-- Send Message submit button present
-- Schedule Callback panel and fields present
-- Preferred Date input id='cbDate' present
-- Phone number input id='cbPhone' present
-- Request Callback submit button present
+- Subject input field present (id=msgSubject)
+- Category dropdown combobox present (Select category)
+- Message body textarea present (id=msgBody)
+- Attachment input present with accepted types text
+- Send Message button present (type=submit)
+- Reason for Call dropdown combobox present
+- Preferred date input present (id=cbDate)
+- Preferred time window combobox present
+- Phone number input present (id=cbPhone placeholder)
+- Request Callback button present (type=submit)
 
-**✘ Missing (spec says it should exist, not found in DOM):**
-- Category dropdown options: Account, Technical, Security, Other
-- Reason for Call dropdown options (list not present)
-- Preferred Time Window options (choices not present)
+*Core secure message and schedule callback form fields and submit buttons are present. Dynamic behaviors (validation, success messages, dropdown option contents) are not verifiable in this static DOM snapshot.*
 
-**⚡ Mismatches (DOM contradicts the spec):**
-- Message Body is plain textarea, not a rich-text editor
-- Phone number shown as placeholder, not pre-filled value
+#### Test Case Verification
 
-*The page implements both Secure Message and Schedule Callback forms with required fields and buttons present. Specific dropdown option items and a rich-text message editor / pre-filled phone value are not present in the static DOM snapshot; dynamic validations and success messages cannot be verified from this snapshot.*
+- **TC-001** ✅ VALID
+- **TC-016** ✅ VALID
 
 ---
