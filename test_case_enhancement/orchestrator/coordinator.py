@@ -7,9 +7,9 @@ description against a live web application.
 Architecture:
   1. TraversalPlannerAgent reads the full spec → generates ordered traversal plan
   2. For each step in the plan:
-     a. ActionEngine navigates to the target page (goal-oriented actions)
-     b. PageIdentifierAgent confirms which spec section the page matches
-     c. SpecCheckerAgent verifies the page against its spec section
+     a. InteractionAgent navigates to the target page (goal-oriented actions)
+     b. StateIdentifierAgent confirms which spec section the page matches
+     c. ComplianceCheckerAgent verifies the page against its spec section
   3. Failed steps trigger replanning via the TraversalPlannerAgent
 
 No URL hints, no keyword tables, no guessing. The plan is derived entirely
@@ -20,7 +20,7 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
-from test_case_enhancement.core.llm import LLMClient
+from test_case_enhancement.llm.client import LLMClient
 from test_case_enhancement.core.logging import DebugLogger
 from test_case_enhancement.core.models import (
     RoleCredentials,
@@ -36,20 +36,20 @@ from test_case_enhancement.core.utils import (
 )
 from test_case_enhancement.browser.controller import BrowserController
 from test_case_enhancement.browser.dom_helper import DOMHelper
-from test_case_enhancement.browser.selector_filter import SelectorMapFilter
-from test_case_enhancement.exploration.credentials import CredentialParser
-from test_case_enhancement.agents.page_identifier import PageIdentifierAgent
-from test_case_enhancement.agents.traversal_planner import (
-    TraversalPlannerAgent,
+from test_case_enhancement.browser.selector_filter import SelectorFilter
+from test_case_enhancement.parsers.mockdata_parser import CredentialParser
+from test_case_enhancement.agents.state_identifier import StateIdentifierAgent
+from test_case_enhancement.agents.navigation_planner import (
+    NavigationPlannerAgent,
     TraversalStep,
 )
-from test_case_enhancement.agents.action_engine import ActionEngine
-from test_case_enhancement.spec_verifier.description_parser import DescriptionParser
-from test_case_enhancement.spec_verifier.checker import SpecCheckerAgent
-from test_case_enhancement.spec_verifier import report as report_module
-from test_case_enhancement.agents.tc_checker import TestCaseCheckerAgent
-from test_case_enhancement.agents.tc_enricher import TestCaseEnricherAgent
-from test_case_enhancement.tc_parser import parse_test_cases
+from test_case_enhancement.agents.interaction_agent import InteractionAgent
+from test_case_enhancement.parsers.spec_parser import DescriptionParser
+from test_case_enhancement.agents.compliance_checker import ComplianceCheckerAgent
+from test_case_enhancement.reporting import generator as report_module
+from test_case_enhancement.agents.test_step_verifier import TestStepVerifierAgent
+from test_case_enhancement.agents.test_data_enricher import TestDataEnricherAgent
+from test_case_enhancement.parsers.testcase_parser import parse_test_cases
 
 
 # ---- Constants ----
@@ -57,7 +57,7 @@ _MAX_REPLAN_ATTEMPTS = 2   # max times to replan a single failed step
 _LOW_SCORE_THRESHOLD = 50  # scores below this trigger remediation + re-verification
 
 
-class TraversalOrchestrator:
+class Coordinator:
     """
     Orchestrates a plan-based, agentic traversal for spec verification.
 
@@ -75,6 +75,7 @@ class TraversalOrchestrator:
     """
 
     def __init__(self, config: Dict[str, Any]):
+        """Initialize the __init__ method."""
         self.base_url = config["base_url"]
         self.functional_desc_file = config.get("functional_desc_file", "")
         self.credentials_file = config.get("credentials_file", "")
@@ -104,15 +105,15 @@ class TraversalOrchestrator:
         self.browser_controller = BrowserController(llm_client=self._base_llm)
         self.browser_session = self.browser_controller.browser_context
         self.dom_helper = DOMHelper(self.browser_session)
-        self.selector_filter = SelectorMapFilter()
+        self.selector_filter = SelectorFilter()
 
         # ---- Agents ----
-        self.planner = TraversalPlannerAgent(
+        self.planner = NavigationPlannerAgent(
             llm_client=self._base_llm,
             debug=self.debug,
             debug_file=self.debug_file,
         )
-        self.action_engine = ActionEngine(
+        self.interaction_agent = InteractionAgent(
             llm_client=self._base_llm,
             browser_controller=self.browser_controller,
             browser_session=self.browser_session,
@@ -121,22 +122,22 @@ class TraversalOrchestrator:
             selector_filter=self.selector_filter,
             base_url=self.base_url,
         )
-        self.page_identifier = PageIdentifierAgent(
+        self.state_identifier = StateIdentifierAgent(
             llm_client=self._base_llm,
             debug=self.debug,
             debug_file=self.debug_file,
         )
-        self.checker = SpecCheckerAgent(
+        self.compliance_checker = ComplianceCheckerAgent(
             llm_client=self._base_llm,
             debug=self.debug,
             debug_file=self.debug_file,
         )
-        self.tc_checker = TestCaseCheckerAgent(
+        self.step_verifier = TestStepVerifierAgent(
             llm=self._base_llm,
             debug=self.debug,
             debug_file=self.debug_file,
         )
-        self.tc_enricher = TestCaseEnricherAgent(
+        self.data_enricher = TestDataEnricherAgent(
             llm=self._base_llm,
             debug=self.debug,
             debug_file=self.debug_file,
@@ -340,9 +341,9 @@ class TraversalOrchestrator:
         total_llm = (
             self.llm_call_count
             + self.planner.llm_call_count
-            + self.action_engine.llm_call_count
-            + self.page_identifier.llm_call_count
-            + self.checker.llm_call_count
+            + self.interaction_agent.llm_call_count
+            + self.state_identifier.llm_call_count
+            + self.compliance_checker.llm_call_count
         )
         report = report_module.build_report(
             project_url=self.base_url,
@@ -352,9 +353,9 @@ class TraversalOrchestrator:
             extra_stats={
                 "llm_calls_orchestrator": self.llm_call_count,
                 "llm_calls_planner": self.planner.llm_call_count,
-                "llm_calls_action_engine": self.action_engine.llm_call_count,
-                "llm_calls_page_identifier": self.page_identifier.llm_call_count,
-                "llm_calls_checker": self.checker.llm_call_count,
+                "llm_calls_interaction_agent": self.interaction_agent.llm_call_count,
+                "llm_calls_state_identifier": self.state_identifier.llm_call_count,
+                "llm_calls_compliance_checker": self.compliance_checker.llm_call_count,
             },
         )
         paths = report_module.write_report(report, self.output_dir)
@@ -434,7 +435,7 @@ class TraversalOrchestrator:
         # ---- UNIFIED: Navigate → Identify → Verify → Interact ----
         # Works for listing, detail, overlay, summary, confirmation.
         # The LLM handles overlay/navigation differences via _build_goal prompts.
-        action_result = self.action_engine.execute_goal(
+        action_result = self.interaction_agent.execute_goal(
             goal=goal,
             extra_context=extra_context,
         )
@@ -491,7 +492,7 @@ class TraversalOrchestrator:
             if n not in results
         ]
 
-        matched_section, confidence = self.page_identifier.identify(
+        matched_section, confidence = self.state_identifier.identify(
             current_url=current_url,
             current_title=current_title,
             page_content=page_content,
@@ -538,7 +539,7 @@ class TraversalOrchestrator:
         nav_goal = self._build_goal(step, section_map, results)
         extra_context = self._build_extra_context(step)
 
-        action_result = self.action_engine.execute_goal(
+        action_result = self.interaction_agent.execute_goal(
             goal=nav_goal,
             extra_context=extra_context,
         )
@@ -574,7 +575,7 @@ class TraversalOrchestrator:
                 f"{step.interactions_needed[:100]}"
             )
             submit_goal = step.interactions_needed
-            submit_result = self.action_engine.execute_goal(
+            submit_result = self.interaction_agent.execute_goal(
                 goal=submit_goal,
                 extra_context=extra_context,
             )
@@ -609,7 +610,7 @@ class TraversalOrchestrator:
         This method:
           0. Ensures prerequisite observable state exists (Fix 2)
           1. Captures the full page state BEFORE the action
-          2. Executes the action via ActionEngine
+          2. Executes the action via InteractionAgent
           3. Captures the full page state AFTER the action
           4. Builds a combined before/after context:
                - Vision models: compact URL header + before+after screenshots
@@ -644,7 +645,7 @@ class TraversalOrchestrator:
         # max_steps=3 gives enough room for open-trigger + click + settle
         # while still being tight enough to prevent multi-step loops that
         # would second-guess and undo completed actions.
-        action_result = self.action_engine.execute_goal(
+        action_result = self.interaction_agent.execute_goal(
             goal=goal,
             extra_context=extra_context,
             max_steps=3,
@@ -733,7 +734,7 @@ class TraversalOrchestrator:
 
         This method asks the LLM: "Given this action's spec, what observable
         state must exist for the change to be verifiable?" and, if that state
-        is missing from the current page, runs ActionEngine to set it up.
+        is missing from the current page, runs InteractionAgent to set it up.
 
         Examples:
           - "Reset App State" spec says it clears the cart →
@@ -743,7 +744,7 @@ class TraversalOrchestrator:
 
         This is generic — driven entirely by the spec text, not hardcoded.
         """
-        from test_case_enhancement.agents.prompts import PROMPT_ACTION_PREREQUISITE_CHECK
+        from test_case_enhancement.llm.prompts import PROMPT_ACTION_PREREQUISITE_CHECK
         from test_case_enhancement.core.utils import parse_llm_json
 
         current_url = get_current_url(self.browser_session)
@@ -780,7 +781,7 @@ class TraversalOrchestrator:
             f"{setup_goal[:120]}"
         )
 
-        setup_result = self.action_engine.execute_goal(
+        setup_result = self.interaction_agent.execute_goal(
             goal=setup_goal,
             max_steps=3,
         )
@@ -815,7 +816,7 @@ class TraversalOrchestrator:
             if n not in results
         ]
 
-        matched_section, confidence = self.page_identifier.identify(
+        matched_section, confidence = self.state_identifier.identify(
             current_url=current_url,
             current_title=current_title,
             page_content=page_content,
@@ -865,7 +866,7 @@ class TraversalOrchestrator:
     ) -> SectionVerificationResult:
         """
         Self-correction loop: when a verification score is below the threshold,
-        feed the checker's structured ``missing`` list to the ActionEngine as a
+        feed the checker's structured ``missing`` list to the InteractionAgent as a
         targeted remediation goal, then re-verify once.
 
         Design rationale for using ``result.missing`` (not ``result.notes``):
@@ -902,7 +903,7 @@ class TraversalOrchestrator:
             f"— {len(result.missing)} missing item(s). Attempting remediation."
         )
 
-        remediate_result = self.action_engine.execute_goal(
+        remediate_result = self.interaction_agent.execute_goal(
             goal=remediation_goal,
             max_steps=3,  # tight budget — simple reveal actions only
         )
@@ -965,7 +966,7 @@ class TraversalOrchestrator:
             f"{step.interactions_needed[:100]}"
         )
         extra_context = self._build_extra_context(step)
-        interact_result = self.action_engine.execute_goal(
+        interact_result = self.interaction_agent.execute_goal(
             goal=step.interactions_needed,
             extra_context=extra_context,
         )
@@ -1048,7 +1049,7 @@ class TraversalOrchestrator:
         prereq = advice.get("prerequisite_actions", "")
         if prereq:
             self._log(f"    [Advisor] Running prerequisite: {prereq[:120]}")
-            self.action_engine.execute_goal(
+            self.interaction_agent.execute_goal(
                 goal=prereq,
                 max_steps=3,  # tight budget for prereq setup
             )
@@ -1079,6 +1080,7 @@ class TraversalOrchestrator:
                 failed_step=step,
                 failure_reason="Navigation actions did not reach the target page.",
                 current_url=current_url,
+                current_title=current_title,
                 page_content=page_content,
                 remaining_sections=remaining,
                 global_context=self.global_context,
@@ -1092,12 +1094,20 @@ class TraversalOrchestrator:
             self._log(f"    [Replan] New approach: {new_approach[:120]}")
 
             # Create a modified step with the new approach
+            # For form_gateway, we MUST preserve the original interactions_needed
+            # because those are the Phase B form submission instructions, whereas
+            # replan's 'actions_needed' are just navigation workarounds.
+            if step.page_type == "form_gateway":
+                new_interactions = step.interactions_needed
+            else:
+                new_interactions = replan_data.get("actions_needed", "")
+
             new_step = TraversalStep(
                 target_section=step.target_section,
                 page_type=step.page_type,
                 how_to_reach=new_approach,
                 prerequisites=step.prerequisites,
-                interactions_needed=replan_data.get("actions_needed", ""),
+                interactions_needed=new_interactions,
                 phase=step.phase,
             )
 
@@ -1113,7 +1123,7 @@ class TraversalOrchestrator:
 
             # Go back to base URL to try again from a known state
             self._log("    [Replan] Returning to base URL for next attempt...")
-            self.action_engine.navigate_to_url(self.base_url)
+            self.interaction_agent.navigate_to_url(self.base_url)
 
         return None
 
@@ -1128,12 +1138,12 @@ class TraversalOrchestrator:
         results: Dict[str, SectionVerificationResult],
     ) -> str:
         """
-        Build a NAVIGATION-ONLY goal for the ActionEngine from a plan step.
+        Build a NAVIGATION-ONLY goal for the InteractionAgent from a plan step.
 
         CRITICAL: The goal must ONLY be about reaching the target page or
         performing the target action. It must NOT include interactions_needed
         (like submitting forms, clicking navigation links, or clicking Back). Those cause
-        the ActionEngine to overshoot past the target page before we can verify it.
+        the InteractionAgent to overshoot past the target page before we can verify it.
 
         Stop-condition logic is TYPE-AWARE because different page types have
         fundamentally different definitions of "done":
@@ -1193,7 +1203,7 @@ class TraversalOrchestrator:
 
         Checks the target_section name and how_to_reach text against a set
         of auth-intent keywords. This determines whether credentials should
-        be injected into the ActionEngine prompt and whether a successful
+        be injected into the InteractionAgent prompt and whether a successful
         form_gateway execution counts as 'logged in'.
         """
         haystack = (
@@ -1202,7 +1212,7 @@ class TraversalOrchestrator:
         return any(kw in haystack for kw in self._AUTH_INTENT_KEYWORDS)
 
     def _build_extra_context(self, step: "TraversalStep") -> str:
-        """Build extra context for the ActionEngine (e.g., credentials).
+        """Build extra context for the InteractionAgent (e.g., credentials).
 
         Credentials are injected ONLY for authentication-intent steps
         (login, sign-in, authenticate) to avoid leaking them into unrelated
@@ -1236,7 +1246,7 @@ class TraversalOrchestrator:
         page_content: str,
         before_screenshot_b64: Optional[str] = None,
     ) -> SectionVerificationResult:
-        """Run SpecCheckerAgent on the current page for a section.
+        """Run ComplianceCheckerAgent on the current page for a section.
 
         Parameters
         ----------
@@ -1250,7 +1260,7 @@ class TraversalOrchestrator:
             from test_case_enhancement.browser.screenshot import capture_screenshot_b64
             screenshot_b64 = capture_screenshot_b64(self.browser_session)
 
-        result = self.checker.check(
+        result = self.compliance_checker.check(
             section=section,
             page_title=current_title,
             page_url=current_url,
@@ -1265,8 +1275,8 @@ class TraversalOrchestrator:
         # ---- TEST CASE VERIFICATION ----
         if getattr(self, "test_cases_file", None) and section.name in getattr(self, "test_cases", {}):
             tcs = self.test_cases[section.name]
-            self._log(f"    [TestCaseChecker] Verifying {len(tcs)} test cases for '{section.name}'...")
-            tc_results = self.tc_checker.verify_test_cases(
+            self._log(f"    [TestStepVerifier] Verifying {len(tcs)} test cases for '{section.name}'...")
+            tc_results = self.step_verifier.verify_test_cases(
                 module_name=section.name,
                 page_url=current_url,
                 page_title=current_title,
@@ -1275,12 +1285,12 @@ class TraversalOrchestrator:
                 screenshot_b64=screenshot_b64,
             )
             result.test_case_results = tc_results
-            self._log(f"    [TestCaseChecker] Done. ({len(tc_results)} results)")
+            self._log(f"    [TestStepVerifier] Done. ({len(tc_results)} results)")
 
             # ---- TEST CASE ENRICHMENT ----
             mock_data = getattr(self, "mock_data_text", "")
-            self._log(f"    [TestCaseEnricher] Enriching and repairing {len(tcs)} test cases...")
-            enriched_results = self.tc_enricher.enrich_test_cases(
+            self._log(f"    [TestDataEnricher] Enriching and repairing {len(tcs)} test cases...")
+            enriched_results = self.data_enricher.enrich_test_cases(
                 module_name=section.name,
                 base_url=self.base_url,
                 mock_data=mock_data,
@@ -1288,7 +1298,7 @@ class TraversalOrchestrator:
                 verification_results=tc_results,
             )
             result.enriched_test_cases = enriched_results
-            self._log(f"    [TestCaseEnricher] Done. ({len(enriched_results)} enriched TCs)")
+            self._log(f"    [TestDataEnricher] Done. ({len(enriched_results)} enriched TCs)")
 
         return result
 
@@ -1304,7 +1314,7 @@ class TraversalOrchestrator:
         Unlike the old _do_login(), this method:
           - Does NOT assume the login page is at base_url
           - Does NOT hard-navigate away from the current page first
-          - Gives the ActionEngine a dynamic goal to FIND the login page from
+          - Gives the InteractionAgent a dynamic goal to FIND the login page from
             wherever we currently are (nav link, header button, etc.)
           - Falls back to base_url only as a last resort
 
@@ -1332,7 +1342,7 @@ class TraversalOrchestrator:
             f"The password field may have placeholder 'Password' or 'Secret'."
         )
 
-        result = self.action_engine.execute_goal(goal=goal, extra_context=extra, max_steps=6)
+        result = self.interaction_agent.execute_goal(goal=goal, extra_context=extra, max_steps=6)
 
         if result.success:
             self._log(
@@ -1345,8 +1355,8 @@ class TraversalOrchestrator:
             f"  [Auth] Could not find login from current page — "
             f"trying base URL {self.base_url} as fallback."
         )
-        self.action_engine.navigate_to_url(self.base_url)
-        result = self.action_engine.execute_goal(goal=goal, extra_context=extra, max_steps=4)
+        self.interaction_agent.navigate_to_url(self.base_url)
+        result = self.interaction_agent.execute_goal(goal=goal, extra_context=extra, max_steps=4)
 
         if result.success:
             self._log(
@@ -1363,12 +1373,12 @@ class TraversalOrchestrator:
             "Open the navigation menu (hamburger menu button) if it exists, "
             "then click the 'Logout' link or button."
         )
-        result = self.action_engine.execute_goal(goal=goal)
+        result = self.interaction_agent.execute_goal(goal=goal)
         if result.success:
             self._log("  Logged out.")
         else:
             # Fallback: navigate to base URL
-            self.action_engine.navigate_to_url(self.base_url)
+            self.interaction_agent.navigate_to_url(self.base_url)
             self._log("  Logout fallback: navigated to base URL.")
 
     # ================================================================
@@ -1378,7 +1388,7 @@ class TraversalOrchestrator:
     def _get_combined_page_content(self) -> str:
         """
         Combine visible page body text + DOM selector map into a single
-        string for use by PageIdentifierAgent and SpecCheckerAgent.
+        string for use by StateIdentifierAgent and ComplianceCheckerAgent.
         """
         body_text = self._get_page_body_text()
         _, selector_map_string = self.dom_helper.scroll_and_capture()
@@ -1533,4 +1543,3 @@ class TraversalOrchestrator:
 
 
 # ---- Backward-compatible alias so __main__.py doesn't need changing ----
-SpecVerifier = TraversalOrchestrator
