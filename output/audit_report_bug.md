@@ -59,3 +59,8 @@ The agent continued to successfully identify the legitimate, pre-existing applic
 - **Reset App State**: The agent correctly flagged that clicking the reset button failed to clear the cart badge and items, identifying a true DOM-to-Specification mismatch.
 
 ---
+
+
+----------------------------------------
+future work..not just incorrect..add missing ui components okay.
+test case enrichment evaluation is also needed.
