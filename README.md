@@ -71,6 +71,8 @@ python -m test_case_enhancement \
 output/swaglabs/
 ├── verification_report.md         Human-readable results
 ├── verification_report.json       Machine-readable full report
+├── verification_report_faulty.md  Simulated verification of the faulty dataset
+├── verification_report_faulty.json Same, as JSON
 ├── enriched_test_cases.md         Repaired test cases with real data
 ├── enriched_test_cases.json       Same, as JSON
 ├── audited_test_cases.md          Step-level DOM audit results
@@ -255,14 +257,18 @@ Test-Case-Enhancement/
 │   ├── swaglabs/               Sauce Labs demo e-commerce app
 │   │   ├── SwagLabs.md         Functional specification
 │   │   ├── Test_Cases.md       Test case suite (100+ TCs)
-│   │   └── Mock_Data.md        Test credentials
+│   │   ├── Mock_Data.md        Test credentials
+│   │   └── faulty/             Faulty specification with injected bugs
 │   └── parabank/               ParaBank demo banking app
 │       ├── Parabank.md         Functional specification
 │       ├── Test_Cases.md       Test case suite
 │       ├── Mock_Data.md        Test credentials
-│       └── app/                Local app deployment (if needed)
+│       ├── app/                Local app deployment (if needed)
+│       └── faulty/             Faulty specification with injected bugs
 │
 ├── output/                     Generated verification reports
+│   ├── audit_report.md         General verification baseline audit
+│   ├── audit_report_bug.md     Audit of agent performance on faulty datasets
 │   ├── swaglabs/               SwagLabs run outputs
 │   └── parabank/               ParaBank run outputs
 │
@@ -294,12 +300,22 @@ Test-Case-Enhancement/
 - **Spec sections**: 10 (Login, Inventory, Product Detail, Cart, Checkout ×3, Navigation Menu, Logout, Reset)
 - **Test cases**: 80+ test cases across all modules
 - **Result** (actual run): 9/10 Pass, 87/100 overall score
+- **Faulty Dataset Variant**: Contains 9 intentionally injected hallucinated UI requirements to stress-test the compliance checker.
 
 ### ParaBank (`datasets/parabank/`)
 - **App**: [ParaBank](https://parabank.parasoft.com/) — public banking demo application
 - **Spec sections**: 12 (Login, Registration, Accounts, Transactions, Bill Pay, etc.)
 - **Test cases**: 80+ test cases across all modules
 - **Demonstrates**: Multi-step authenticated workflows, form-heavy applications
+- **Faulty Dataset Variant**: Contains 10 intentionally injected hallucinated UI requirements to test rigid spec adherence.
+
+---
+
+## Faulty Dataset Verification Auditing
+
+To rigorously test the verification engine's strict adherence to documentation, we conduct isolated audits using **faulty datasets**. In these datasets, false "hallucinated" requirements (e.g., claiming a "Remember Me" checkbox exists on a login page) are deliberately injected into the markdown specifications while the live application DOM remains functionally unmodified. 
+
+The agent successfully identifies the specification-to-DOM mismatches by flagging the injected features as `Missing` and automatically lowering the compliance score for the affected sections, proving high reliability in spotting specification inaccuracies. A comprehensive breakdown of these stress tests can be found in `output/audit_report_bug.md`.
 
 ---
 
