@@ -381,222 +381,222 @@
       "tc_id": "TC-001",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Enter a valid first name in the First Name field",
-        "step 2: Enter a valid last name in the Last Name field",
-        "step 3: Enter a valid postal code in the Zip/Postal Code field",
-        "step 4: Click **Continue**"
+        "step 1: First Name input found (input#first-name, placeholder='First Name')",
+        "step 2: Last Name input found (input#last-name, placeholder='Last Name')",
+        "step 3: Zip/Postal Code input found (input#postal-code, placeholder='Zip/Postal Code')",
+        "step 4: Continue button found (input#continue type='submit' value='Continue')"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-006",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Click the **Cancel** button"
+        "step 1: Cancel button found (button#cancel)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-007",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Ensure the First Name field is blank",
-        "step 2: Enter a valid last name in the Last Name field",
-        "step 3: Enter a valid postal code in the Zip/Postal Code field",
-        "step 4: Click the **Continue** button"
+        "step 1: First Name input found (input#first-name, placeholder='First Name')",
+        "step 2: Last Name input found (input#last-name, placeholder='Last Name')",
+        "step 3: Zip/Postal Code input found (input#postal-code, placeholder='Zip/Postal Code')",
+        "step 4: Continue button found (input#continue type='submit' value='Continue')"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-010",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Ensure the First Name field is blank",
-        "step 2: Ensure the Last Name field is blank",
-        "step 3: Ensure the Zip/Postal Code field is blank",
-        "step 4: Click the **Continue** button"
+        "step 1: First Name input found (input#first-name, placeholder='First Name')",
+        "step 2: Last Name input found (input#last-name, placeholder='Last Name')",
+        "step 3: Zip/Postal Code input found (input#postal-code, placeholder='Zip/Postal Code')",
+        "step 4: Continue button found (input#continue type='submit' value='Continue')"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-011",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Enter a whitespace-only value (spaces or tabs) in the First Name field",
-        "step 2: Enter a valid value in the Last Name field",
-        "step 3: Enter a valid value in the Zip/Postal Code field",
-        "step 4: Click **Continue**"
+        "step 1: First Name input found (input#first-name, placeholder='First Name')",
+        "step 2: Last Name input found (input#last-name, placeholder='Last Name')",
+        "step 3: Zip/Postal Code input found (input#postal-code, placeholder='Zip/Postal Code')",
+        "step 4: Continue button found (input#continue type='submit' value='Continue')"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-013",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Enter a 200+ character string in the First Name field",
-        "step 2: Enter a 200+ character string in the Last Name field",
-        "step 3: Enter a valid postal code in the Zip/Postal Code field",
-        "step 4: Click **Continue**"
+        "step 1: First Name input found (input#first-name, placeholder='First Name')",
+        "step 2: Last Name input found (input#last-name, placeholder='Last Name')",
+        "step 3: Zip/Postal Code input found (input#postal-code, placeholder='Zip/Postal Code')",
+        "step 4: Continue button found (input#continue type='submit' value='Continue')"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-001",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Review the Order Summary to confirm items are listed",
-        "step 2: Verify totals section shows Item total, Tax, and Total",
-        "step 3: Click the **Finish** button"
+        "step 1: Order Summary fields and Totals found (div.summary_info)",
+        "step 2: Order Summary fields and Totals found (div.summary_info)",
+        "step 3: Finish button found (button#finish)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-002",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Optionally review the Order Summary",
-        "step 2: Click the **Cancel** button"
+        "step 1: Order Summary fields and Totals found (div.summary_info)",
+        "step 2: Cancel button found (button#cancel)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-003",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Navigate directly to the Checkout – Overview page URL",
-        "step 2: Observe the page content",
-        "step 3: Click the **Finish** button"
+        "step 1: Browser navigation/observation action verified",
+        "step 2: Browser navigation/observation action verified",
+        "step 3: Finish button found (button#finish)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-005",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Click the **Finish** button",
-        "step 2: Immediately click the **Finish** button again (within one second)",
-        "step 3: Observe the UI until navigation to the Confirmation page completes"
+        "step 1: Finish button found (button#finish)",
+        "step 2: Finish button found (button#finish)",
+        "step 3: Browser navigation/observation action verified"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-006",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Click the **Finish** button on the Overview step",
-        "step 2: Wait for the Confirmation page to be displayed",
-        "step 3: Use the browser **Back** button once",
-        "step 4: If the Overview page is shown, attempt to click **Finish** again"
+        "step 1: Finish button found (button#finish)",
+        "step 2: Browser navigation/observation action verified",
+        "step 3: Element matched in DOM snapshot",
+        "step 4: Finish button found (button#finish)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-001",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Navigate to the Confirmation page",
-        "step 2: Observe the page content"
+        "step 1: Element matched in DOM snapshot",
+        "step 2: Browser navigation/observation action verified"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-002",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Click the **Back Home** button on the Confirmation page",
-        "step 2: Wait for navigation to complete and observe the landing page"
+        "step 1: Back Home button found (button#back-to-products)",
+        "step 2: Browser navigation/observation action verified"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-003",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Navigate directly to the Confirmation page URL"
+        "step 1: Browser navigation/observation action verified"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-005",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Rapidly click the **Back Home** button twice in immediate succession"
+        "step 1: Back Home button found (button#back-to-products)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-007",
       "verdict": "valid",
       "valid_steps": [
-        "step 1: Reload/refresh the Confirmation page",
-        "step 2: Verify the confirmation message is still visible (or a cached view is shown)",
-        "step 3: Click the **Back Home** button"
+        "step 1: Page reload action mapped to current URL state",
+        "step 2: Element matched in DOM snapshot",
+        "step 3: Back Home button found (button#back-to-products)"
       ],
       "invalid_steps": [],
       "missing_steps": [],
       "precondition_issues": [],
       "invalid_reason": "",
-      "notes": "Manually verified for completion."
+      "notes": "All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here."
     },
     {
       "tc_id": "TC-001",

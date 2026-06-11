@@ -133,82 +133,82 @@
 ## TC-001 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-006 - VALID
 - **Valid Steps:** 1
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-007 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-010 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-011 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-013 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-001 - VALID
 - **Valid Steps:** 3
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-002 - VALID
 - **Valid Steps:** 2
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-003 - VALID
 - **Valid Steps:** 3
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-005 - VALID
 - **Valid Steps:** 3
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-006 - VALID
 - **Valid Steps:** 4
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-001 - VALID
 - **Valid Steps:** 2
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-002 - VALID
 - **Valid Steps:** 2
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-003 - VALID
 - **Valid Steps:** 1
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-005 - VALID
 - **Valid Steps:** 1
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-007 - VALID
 - **Valid Steps:** 3
 - **Invalid Steps:** 0
-- **Notes:** Manually verified for completion.
+- **Notes:** All verifiable steps map to elements on the checkout page; post-click outcomes are dynamic and not checked here.
 
 ## TC-001 - INVALID_STEPS
 - **Valid Steps:** 0
