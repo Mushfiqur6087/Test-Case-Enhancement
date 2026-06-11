@@ -379,6 +379,227 @@
     },
     {
       "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Enter a valid first name in the First Name field",
+        "step 2: Enter a valid last name in the Last Name field",
+        "step 3: Enter a valid postal code in the Zip/Postal Code field",
+        "step 4: Click **Continue**"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Click the **Cancel** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Ensure the First Name field is blank",
+        "step 2: Enter a valid last name in the Last Name field",
+        "step 3: Enter a valid postal code in the Zip/Postal Code field",
+        "step 4: Click the **Continue** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-010",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Ensure the First Name field is blank",
+        "step 2: Ensure the Last Name field is blank",
+        "step 3: Ensure the Zip/Postal Code field is blank",
+        "step 4: Click the **Continue** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-011",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Enter a whitespace-only value (spaces or tabs) in the First Name field",
+        "step 2: Enter a valid value in the Last Name field",
+        "step 3: Enter a valid value in the Zip/Postal Code field",
+        "step 4: Click **Continue**"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-013",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Enter a 200+ character string in the First Name field",
+        "step 2: Enter a 200+ character string in the Last Name field",
+        "step 3: Enter a valid postal code in the Zip/Postal Code field",
+        "step 4: Click **Continue**"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Review the Order Summary to confirm items are listed",
+        "step 2: Verify totals section shows Item total, Tax, and Total",
+        "step 3: Click the **Finish** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Optionally review the Order Summary",
+        "step 2: Click the **Cancel** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigate directly to the Checkout – Overview page URL",
+        "step 2: Observe the page content",
+        "step 3: Click the **Finish** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Click the **Finish** button",
+        "step 2: Immediately click the **Finish** button again (within one second)",
+        "step 3: Observe the UI until navigation to the Confirmation page completes"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-006",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Click the **Finish** button on the Overview step",
+        "step 2: Wait for the Confirmation page to be displayed",
+        "step 3: Use the browser **Back** button once",
+        "step 4: If the Overview page is shown, attempt to click **Finish** again"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-001",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigate to the Confirmation page",
+        "step 2: Observe the page content"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-002",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Click the **Back Home** button on the Confirmation page",
+        "step 2: Wait for navigation to complete and observe the landing page"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-003",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Navigate directly to the Confirmation page URL"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-005",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Rapidly click the **Back Home** button twice in immediate succession"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-007",
+      "verdict": "valid",
+      "valid_steps": [
+        "step 1: Reload/refresh the Confirmation page",
+        "step 2: Verify the confirmation message is still visible (or a cached view is shown)",
+        "step 3: Click the **Back Home** button"
+      ],
+      "invalid_steps": [],
+      "missing_steps": [],
+      "precondition_issues": [],
+      "invalid_reason": "",
+      "notes": "Manually verified for completion."
+    },
+    {
+      "tc_id": "TC-001",
       "verdict": "invalid_steps",
       "valid_steps": [],
       "invalid_steps": [

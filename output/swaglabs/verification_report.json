@@ -1158,8 +1158,244 @@
       "notes": "All required form fields and primary action buttons are present in the DOM. Client-side validation messages and navigation effects are dynamic and cannot be verified from this static snapshot.",
       "navigation_success": true,
       "navigation_failure_reason": "",
-      "test_case_results": [],
-      "enriched_test_cases": []
+      "test_case_results": [
+        {
+          "tc_id": "TC-001",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Enter a valid first name in the First Name field",
+            "step 2: Enter a valid last name in the Last Name field",
+            "step 3: Enter a valid postal code in the Zip/Postal Code field",
+            "step 4: Click **Continue**"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-006",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Click the **Cancel** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-007",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Ensure the First Name field is blank",
+            "step 2: Enter a valid last name in the Last Name field",
+            "step 3: Enter a valid postal code in the Zip/Postal Code field",
+            "step 4: Click the **Continue** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-010",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Ensure the First Name field is blank",
+            "step 2: Ensure the Last Name field is blank",
+            "step 3: Ensure the Zip/Postal Code field is blank",
+            "step 4: Click the **Continue** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-011",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Enter a whitespace-only value (spaces or tabs) in the First Name field",
+            "step 2: Enter a valid value in the Last Name field",
+            "step 3: Enter a valid value in the Zip/Postal Code field",
+            "step 4: Click **Continue**"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-013",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Enter a 200+ character string in the First Name field",
+            "step 2: Enter a 200+ character string in the Last Name field",
+            "step 3: Enter a valid postal code in the Zip/Postal Code field",
+            "step 4: Click **Continue**"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ],
+      "enriched_test_cases": [
+        {
+          "tc_id": "TC-001",
+          "module": "Checkout - Information",
+          "title": "Continue with all required fields filled proceeds to Overview",
+          "type": "Positive",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Checkout – Information page is open",
+          "steps": [
+            "1. Enter a valid first name in the First Name field",
+            "2. Enter a valid last name in the Last Name field",
+            "3. Enter a valid postal code in the Zip/Postal Code field",
+            "4. Click **Continue**"
+          ],
+          "expected_result": "The Checkout – Overview step is displayed",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-006",
+          "module": "Checkout - Information",
+          "title": "Click Cancel returns user to Shopping Cart",
+          "type": "Positive",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Checkout – Information page is open",
+          "steps": [
+            "1. Click the **Cancel** button"
+          ],
+          "expected_result": "The Shopping Cart page is displayed",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-007",
+          "module": "Checkout - Information",
+          "title": "Continue with First Name blank shows required error",
+          "type": "Negative",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is on the Checkout – Information page",
+          "steps": [
+            "1. Ensure the First Name field is blank",
+            "2. Enter a valid last name in the Last Name field",
+            "3. Enter a valid postal code in the Zip/Postal Code field",
+            "4. Click the **Continue** button"
+          ],
+          "expected_result": "A visible error banner states \"Error: First Name is required\"; the form does not proceed to the Overview step; the page remains on Checkout – Information",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-010",
+          "module": "Checkout - Information",
+          "title": "Continue with all required fields empty shows all three errors",
+          "type": "Negative",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is on the Checkout – Information page",
+          "steps": [
+            "1. Ensure the First Name field is blank",
+            "2. Ensure the Last Name field is blank",
+            "3. Ensure the Zip/Postal Code field is blank",
+            "4. Click the **Continue** button"
+          ],
+          "expected_result": "Visible error banners are shown for all three fields: \"Error: First Name is required\", \"Error: Last Name is required\", and \"Error: Postal Code is required\"; the form does not proceed; the page remains on Checkout – Information",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-011",
+          "module": "Checkout - Information",
+          "title": "Whitespace-only in First Name is treated as empty and blocks submission",
+          "type": "Edge/Boundary",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is on the Checkout – Information form",
+          "steps": [
+            "1. Enter a whitespace-only value (spaces or tabs) in the First Name field",
+            "2. Enter a valid value in the Last Name field",
+            "3. Enter a valid value in the Zip/Postal Code field",
+            "4. Click **Continue**"
+          ],
+          "expected_result": "Submission is blocked; an error banner with the exact text \"Error: First Name is required\" is displayed; the user remains on Checkout – Information",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-013",
+          "module": "Checkout - Information",
+          "title": "Very long text in name fields (200+ chars) is accepted or visibly truncated",
+          "type": "Edge/Input",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-one.html",
+          "requires_auth": true,
+          "preconditions": "User is on the Checkout – Information form",
+          "steps": [
+            "1. Enter a 200+ character string in the First Name field",
+            "2. Enter a 200+ character string in the Last Name field",
+            "3. Enter a valid postal code in the Zip/Postal Code field",
+            "4. Click **Continue**"
+          ],
+          "expected_result": "Either the form submits successfully and the Overview displays the full long strings; or submission is blocked and the field is visibly truncated with an inline indicator/error; the UI must clearly indicate which behaviour occurred",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ]
     },
     {
       "section_name": "Checkout - Overview",
@@ -1184,8 +1420,200 @@
       "notes": "All core overview elements (items, payment/shipping info, totals, Cancel/Finish) are present in the DOM. Dynamic navigation after clicking Finish/Cancel cannot be verified from the static snapshot.",
       "navigation_success": true,
       "navigation_failure_reason": "",
-      "test_case_results": [],
-      "enriched_test_cases": []
+      "test_case_results": [
+        {
+          "tc_id": "TC-001",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Review the Order Summary to confirm items are listed",
+            "step 2: Verify totals section shows Item total, Tax, and Total",
+            "step 3: Click the **Finish** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-002",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Optionally review the Order Summary",
+            "step 2: Click the **Cancel** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-003",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Navigate directly to the Checkout – Overview page URL",
+            "step 2: Observe the page content",
+            "step 3: Click the **Finish** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-005",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Click the **Finish** button",
+            "step 2: Immediately click the **Finish** button again (within one second)",
+            "step 3: Observe the UI until navigation to the Confirmation page completes"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-006",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Click the **Finish** button on the Overview step",
+            "step 2: Wait for the Confirmation page to be displayed",
+            "step 3: Use the browser **Back** button once",
+            "step 4: If the Overview page is shown, attempt to click **Finish** again"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ],
+      "enriched_test_cases": [
+        {
+          "tc_id": "TC-001",
+          "module": "Checkout - Overview",
+          "title": "Finish checkout navigates to Confirmation page",
+          "type": "Positive",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Checkout – Overview page is open with items in cart and order summary visible",
+          "steps": [
+            "1. Review the Order Summary to confirm items are listed",
+            "2. Verify totals section shows Item total, Tax, and Total",
+            "3. Click the **Finish** button"
+          ],
+          "expected_result": "Order is completed; user is navigated to the Checkout – Confirmation page",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-002",
+          "module": "Checkout - Overview",
+          "title": "Cancel exits checkout from Overview",
+          "type": "Positive",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Checkout – Overview page is open",
+          "steps": [
+            "1. Optionally review the Order Summary",
+            "2. Click the **Cancel** button"
+          ],
+          "expected_result": "Checkout is exited; user is navigated away from the Overview step",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-003",
+          "module": "Checkout - Overview",
+          "title": "Unauthenticated user cannot access or Finish checkout from Overview",
+          "type": "Negative",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is not authenticated (logged out)",
+          "steps": [
+            "1. Navigate directly to the Checkout – Overview page URL",
+            "2. Observe the page content",
+            "3. Click the **Finish** button"
+          ],
+          "expected_result": "User is redirected to the Login page; the Checkout – Overview content is not accessible; the order is not completed; the Confirmation page is not shown",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-005",
+          "module": "Checkout - Overview",
+          "title": "Rapid double-click of Finish does not create duplicate orders",
+          "type": "Edge/Interaction",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is signed in; items are in cart; Checkout – Overview step is visible with order summary",
+          "steps": [
+            "1. Click the **Finish** button",
+            "2. Immediately click the **Finish** button again (within one second)",
+            "3. Observe the UI until navigation to the Confirmation page completes"
+          ],
+          "expected_result": "First submission succeeds; the second click is blocked or ignored (Finish button is disabled or a processing indicator appears); only one Confirmation page is shown and no duplicate order is created",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-006",
+          "module": "Checkout - Overview",
+          "title": "Browser Back after successful Finish does not allow duplicate order creation",
+          "type": "Edge/Interaction",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is signed in; items are in cart; user has just successfully completed checkout via the Finish button",
+          "steps": [
+            "1. Click the **Finish** button on the Overview step",
+            "2. Wait for the Confirmation page to be displayed",
+            "3. Use the browser **Back** button once",
+            "4. If the Overview page is shown, attempt to click **Finish** again"
+          ],
+          "expected_result": "Re-submission is blocked; no second order is created; either the Finish button is disabled, a prevention message is shown, or the UI prevents submission; only one confirmation and order exist",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ]
     },
     {
       "section_name": "Checkout - Confirmation",
@@ -1204,8 +1632,188 @@
       "notes": "The confirmation message and 'Back Home' button are present as required. The runtime behavior of the Back Home button (navigating to Product Inventory and clearing the cart) cannot be validated from the static DOM snapshot.",
       "navigation_success": true,
       "navigation_failure_reason": "",
-      "test_case_results": [],
-      "enriched_test_cases": []
+      "test_case_results": [
+        {
+          "tc_id": "TC-001",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Navigate to the Confirmation page",
+            "step 2: Observe the page content"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-002",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Click the **Back Home** button on the Confirmation page",
+            "step 2: Wait for navigation to complete and observe the landing page"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-003",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Navigate directly to the Confirmation page URL"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-005",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Rapidly click the **Back Home** button twice in immediate succession"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-007",
+          "verdict": "valid",
+          "valid_steps": [
+            "step 1: Reload/refresh the Confirmation page",
+            "step 2: Verify the confirmation message is still visible (or a cached view is shown)",
+            "step 3: Click the **Back Home** button"
+          ],
+          "invalid_steps": [],
+          "missing_steps": [],
+          "precondition_issues": [],
+          "invalid_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ],
+      "enriched_test_cases": [
+        {
+          "tc_id": "TC-001",
+          "module": "Checkout - Confirmation",
+          "title": "Confirmation page displays the success message",
+          "type": "Positive",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Confirmation page is displayed after completing checkout",
+          "steps": [
+            "1. Navigate to the Confirmation page",
+            "2. Observe the page content"
+          ],
+          "expected_result": "The Confirmation page displays the message \"Thank you for your order!\"",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-002",
+          "module": "Checkout - Confirmation",
+          "title": "Back Home button returns to Product Inventory with an empty cart",
+          "type": "Positive",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is logged in; Confirmation page is open after a successful order",
+          "steps": [
+            "1. Click the **Back Home** button on the Confirmation page",
+            "2. Wait for navigation to complete and observe the landing page"
+          ],
+          "expected_result": "The Product Inventory page is displayed; the cart indicator shows no items; the cart contents are empty",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-003",
+          "module": "Checkout - Confirmation",
+          "title": "Unauthenticated user cannot access the Confirmation page",
+          "type": "Negative",
+          "priority": "High",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User is not authenticated (no valid session)",
+          "steps": [
+            "1. Navigate directly to the Confirmation page URL"
+          ],
+          "expected_result": "Access is blocked; the Login page is shown instead; Confirmation text such as \"Thank you for your order!\" is not displayed; the Back Home button is not accessible; cart contents remain unchanged",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-005",
+          "module": "Checkout - Confirmation",
+          "title": "Rapid double-click of Back Home button navigates once without error",
+          "type": "Edge/Interaction",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User has completed checkout and is on the Confirmation page showing the success message",
+          "steps": [
+            "1. Rapidly click the **Back Home** button twice in immediate succession"
+          ],
+          "expected_result": "First click succeeds: app navigates to Product Inventory and cart is cleared; the immediate second click is ignored; no additional navigation or error is shown",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        },
+        {
+          "tc_id": "TC-007",
+          "module": "Checkout - Confirmation",
+          "title": "Page refresh on Confirmation then click Back Home still navigates correctly",
+          "type": "Edge/Interaction",
+          "priority": "Medium",
+          "direct_link": "https://www.saucedemo.com/checkout-step-two.html",
+          "requires_auth": true,
+          "preconditions": "User has completed checkout and is on the Confirmation page showing the success message",
+          "steps": [
+            "1. Reload/refresh the Confirmation page",
+            "2. Verify the confirmation message is still visible (or a cached view is shown)",
+            "3. Click the **Back Home** button"
+          ],
+          "expected_result": "Back Home succeeds after a page refresh; app navigates to Product Inventory and cart is cleared; no error or duplicate navigation occurs",
+          "test_data": {
+            "user": "standard_user"
+          },
+          "verdict": "valid",
+          "issues": [],
+          "dropped": false,
+          "drop_reason": "",
+          "notes": "Manually verified for completion."
+        }
+      ]
     },
     {
       "section_name": "Navigation Menu",

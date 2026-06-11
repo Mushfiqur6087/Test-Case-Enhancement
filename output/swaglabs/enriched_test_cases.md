@@ -468,6 +468,275 @@
 }
 ```
 
+## TC-001 - Continue with all required fields filled proceeds to Overview
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Enter a valid first name in the First Name field
+2. Enter a valid last name in the Last Name field
+3. Enter a valid postal code in the Zip/Postal Code field
+4. Click **Continue**
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-006 - Click Cancel returns user to Shopping Cart
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Click the **Cancel** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-007 - Continue with First Name blank shows required error
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Ensure the First Name field is blank
+2. Enter a valid last name in the Last Name field
+3. Enter a valid postal code in the Zip/Postal Code field
+4. Click the **Continue** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-010 - Continue with all required fields empty shows all three errors
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Ensure the First Name field is blank
+2. Ensure the Last Name field is blank
+3. Ensure the Zip/Postal Code field is blank
+4. Click the **Continue** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-011 - Whitespace-only in First Name is treated as empty and blocks submission
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Enter a whitespace-only value (spaces or tabs) in the First Name field
+2. Enter a valid value in the Last Name field
+3. Enter a valid value in the Zip/Postal Code field
+4. Click **Continue**
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-013 - Very long text in name fields (200+ chars) is accepted or visibly truncated
+- **Module:** Checkout - Information
+- **Direct Link:** https://www.saucedemo.com/checkout-step-one.html
+- **Requires Auth:** True
+
+### Steps
+1. Enter a 200+ character string in the First Name field
+2. Enter a 200+ character string in the Last Name field
+3. Enter a valid postal code in the Zip/Postal Code field
+4. Click **Continue**
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-001 - Finish checkout navigates to Confirmation page
+- **Module:** Checkout - Overview
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Review the Order Summary to confirm items are listed
+2. Verify totals section shows Item total, Tax, and Total
+3. Click the **Finish** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-002 - Cancel exits checkout from Overview
+- **Module:** Checkout - Overview
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Optionally review the Order Summary
+2. Click the **Cancel** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-003 - Unauthenticated user cannot access or Finish checkout from Overview
+- **Module:** Checkout - Overview
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Navigate directly to the Checkout – Overview page URL
+2. Observe the page content
+3. Click the **Finish** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-005 - Rapid double-click of Finish does not create duplicate orders
+- **Module:** Checkout - Overview
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Click the **Finish** button
+2. Immediately click the **Finish** button again (within one second)
+3. Observe the UI until navigation to the Confirmation page completes
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-006 - Browser Back after successful Finish does not allow duplicate order creation
+- **Module:** Checkout - Overview
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Click the **Finish** button on the Overview step
+2. Wait for the Confirmation page to be displayed
+3. Use the browser **Back** button once
+4. If the Overview page is shown, attempt to click **Finish** again
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-001 - Confirmation page displays the success message
+- **Module:** Checkout - Confirmation
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Navigate to the Confirmation page
+2. Observe the page content
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-002 - Back Home button returns to Product Inventory with an empty cart
+- **Module:** Checkout - Confirmation
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Click the **Back Home** button on the Confirmation page
+2. Wait for navigation to complete and observe the landing page
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-003 - Unauthenticated user cannot access the Confirmation page
+- **Module:** Checkout - Confirmation
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Navigate directly to the Confirmation page URL
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-005 - Rapid double-click of Back Home button navigates once without error
+- **Module:** Checkout - Confirmation
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Rapidly click the **Back Home** button twice in immediate succession
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
+## TC-007 - Page refresh on Confirmation then click Back Home still navigates correctly
+- **Module:** Checkout - Confirmation
+- **Direct Link:** https://www.saucedemo.com/checkout-step-two.html
+- **Requires Auth:** True
+
+### Steps
+1. Reload/refresh the Confirmation page
+2. Verify the confirmation message is still visible (or a cached view is shown)
+3. Click the **Back Home** button
+
+### Test Data
+```json
+{
+  "user": "standard_user"
+}
+```
+
 ## TC-001 - Click Logout redirects user to Login page
 - **Module:** Logout
 - **Direct Link:** https://www.saucedemo.com/inventory.html

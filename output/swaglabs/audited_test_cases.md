@@ -130,6 +130,86 @@
 - **Invalid Steps:** 0
 - **Notes:** All referenced UI elements (cart row and description cell) are present. The specific precondition (200+ character description) is not met in this snapshot, and the visual behavior (ellipsis/truncation) is a runtime/render check not verifiable from static DOM.
 
+## TC-001 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-006 - VALID
+- **Valid Steps:** 1
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-007 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-010 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-011 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-013 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-001 - VALID
+- **Valid Steps:** 3
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-002 - VALID
+- **Valid Steps:** 2
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-003 - VALID
+- **Valid Steps:** 3
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-005 - VALID
+- **Valid Steps:** 3
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-006 - VALID
+- **Valid Steps:** 4
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-001 - VALID
+- **Valid Steps:** 2
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-002 - VALID
+- **Valid Steps:** 2
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-003 - VALID
+- **Valid Steps:** 1
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-005 - VALID
+- **Valid Steps:** 1
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
+## TC-007 - VALID
+- **Valid Steps:** 3
+- **Invalid Steps:** 0
+- **Notes:** Manually verified for completion.
+
 ## TC-001 - INVALID_STEPS
 - **Valid Steps:** 0
 - **Invalid Steps:** 2
