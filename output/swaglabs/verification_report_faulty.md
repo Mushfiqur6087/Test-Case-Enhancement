@@ -17,6 +17,16 @@
 | ⏭️  Skipped | 0 |
 | **Total** | **10** |
 
+### Test Case Summary
+
+| Verdict | Count |
+|---------|-------|
+| ✅ Valid | 19 |
+| ⚠️ Invalid Steps | 10 |
+| ❓ Missing Steps | 9 |
+| 🛑 Precondition Issues | 0 |
+| **Total Checked** | **38** |
+
 LLM calls used: 86
 
 ---
@@ -41,10 +51,18 @@ LLM calls used: 86
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-007** ✅ VALID
-- **TC-011** ✅ VALID
-- **TC-012** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-007** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-011** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
+- **TC-012** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-015** ✅ VALID
 
 ---
@@ -71,17 +89,20 @@ LLM calls used: 86
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-002** ✅ VALID
-- **TC-003** ⚠️ INVALID_STEPS
-  - ❌ step 2: 'Remove' button in the product row not found anywhere in the DOM — only 'Add to cart' buttons are present (no data-test or id matching Remove buttons)
-  - 🛑 Precondition requires the target product to be in InCart state, but the current page shows NotInCart state for products (all visible buttons are 'Add to cart')
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-002** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-003** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-005** ✅ VALID
-  - 🛑 Precondition expects the user to be unauthenticated and redirected to Login, but the inventory page is visible in this snapshot (page appears to be loaded with products — session likely authenticated)
-- **TC-007** ⚠️ INVALID_STEPS
-  - ❌ step 2: Cannot locate a product row that is in an InCart state on this page — no 'Remove' buttons or indicators of InCart items are present in the DOM
-  - 🛑 Precondition requires an InCart product to exist, but the snapshot shows all products in NotInCart state (only 'Add to cart' buttons present)
-- **TC-008** ✅ VALID
+- **TC-007** ✅ VALID
+- **TC-008** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-010** ✅ VALID
 
 ---
@@ -107,26 +128,19 @@ LLM calls used: 86
 #### Test Case Verification
 
 - **TC-001** ⚠️ INVALID_STEPS
-  - ❌ step 2: 'Add to cart' button not found anywhere in the DOM — only a 'Remove' button (button[data-test='remove'|id='remove']) is present
-  - 🛑 Precondition expects product in NotInCart state, but the page shows a 'Remove' button (product appears to be InCart)
-- **TC-002** ✅ VALID
-- **TC-003** ✅ VALID
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-002** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-003** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-005** ✅ VALID
 - **TC-006** ✅ VALID
-  - 🛑 Precondition expects the product to be NotInCart, but the page currently shows a Remove button (product appears to be InCart)
-- **TC-007** ⚠️ INVALID_STEPS
-  - ❌ step 1: Verify Add to cart button — Add to cart button not found in DOM (page shows Remove instead)
-  - ❌ step 2: Click the Add to cart button — cannot perform because Add to cart button is absent
-  - ❌ step 3: Immediately click the Add to cart button again — cannot perform because Add to cart button is absent
-  - 🛑 Precondition expects product in NotInCart, but page shows Remove (product appears to be InCart)
-- **TC-009** ⚠️ INVALID_STEPS
-  - ❌ step 1 (partial): 'Add to cart' button is not present in the DOM (page shows Remove instead)
-  - ❌ step 2: Click the Add to cart button — cannot perform because Add to cart button is absent
-  - 🛑 Precondition expects product NotInCart, but the page displays a Remove button (product appears InCart)
-- **TC-011** ⚠️ INVALID_STEPS
-  - ❌ step 1: Click the Add to cart button — Add to cart button not found in DOM (page shows Remove instead)
-  - ❌ step 3: From Product Inventory, navigate back to the same Product Detail page — multi-step navigation cannot be fully verified from this static snapshot (treated as state-dependent/unverifiable for final verification)
-  - 🛑 Precondition expects product NotInCart, but the page displays a Remove button (product appears InCart)
+- **TC-007** ✅ VALID
+- **TC-009** ✅ VALID
+- **TC-011** ✅ VALID
 
 ---
 
@@ -150,15 +164,16 @@ LLM calls used: 86
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-002** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-002** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-003** ✅ VALID
 - **TC-004** ✅ VALID
-  - 🛑 Precondition requires the user to be unauthenticated, but the snapshot shows a populated cart with actions (Remove, Continue Shopping, Checkout) — indicating an authenticated/session state inconsistent with the test precondition.
 - **TC-005** ✅ VALID
-  - 🛑 Precondition requires the user to be unauthenticated, but the snapshot shows a populated cart and checkout action (indicating an authenticated/session state).
 - **TC-006** ✅ VALID
-  - 🛑 Precondition requests a product with a 200+ character description; the visible product description in the snapshot appears much shorter and does not meet the 200+ character requirement.
 
 ---
 
@@ -178,6 +193,15 @@ LLM calls used: 86
 - Email Address input field
 
 *All required form fields and primary action buttons are present in the DOM. Client-side validation messages and navigation effects are dynamic and cannot be verified from this static snapshot.*
+
+#### Test Case Verification
+
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-006** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 
 ---
 
@@ -202,6 +226,12 @@ LLM calls used: 86
 
 *All core overview elements (items, payment/shipping info, totals, Cancel/Finish) are present in the DOM. Dynamic navigation after clicking Finish/Cancel cannot be verified from the static snapshot.*
 
+#### Test Case Verification
+
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+
 ---
 
 ### ✅ Checkout - Confirmation — PASS (95/100)
@@ -215,6 +245,12 @@ LLM calls used: 86
 - Page heading 'Checkout: Complete!'
 
 *The confirmation message and 'Back Home' button are present as required. The runtime behavior of the Back Home button (navigating to Product Inventory and clearing the cart) cannot be validated from the static DOM snapshot.*
+
+#### Test Case Verification
+
+- **TC-002** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 
 ---
 
@@ -255,17 +291,14 @@ LLM calls used: 86
 #### Test Case Verification
 
 - **TC-001** ⚠️ INVALID_STEPS
-  - ❌ step 1: Page with a Logout option is not present — no 'Logout' link/button found in the DOM (current page is the Login page).
-  - ❌ step 2: 'Click the Logout button' cannot be executed — no Logout control exists on this page.
-  - 🛑 Precondition says user is logged in, but the current page shows the Login screen (Username and Password inputs and a Login button are present) — user appears unauthenticated.
-- **TC-002** ⚠️ INVALID_STEPS
-  - ❌ step 1: 'Click the Logout button' cannot be executed — no Logout control found in the DOM (page shows Login form instead).
-  - 🛑 Precondition says user is logged in, but the current page is the Login page (Username/Password inputs and Login button present) — user is not authenticated in this snapshot.
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-002** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-004** ✅ VALID
 - **TC-005** ✅ VALID
-- **TC-007** ⚠️ INVALID_STEPS
-  - ❌ step 1: 'Click the Logout button' cannot be executed — no Logout control found in the DOM (page displays the Login form instead).
-  - 🛑 Precondition requires the user to be logged in and on a protected page, but the current snapshot is the Login page (Username and Password inputs and Login button present) — precondition not met.
+- **TC-007** ✅ VALID
 
 ---
 
@@ -295,7 +328,6 @@ LLM calls used: 86
 
 - **TC-001** ✅ VALID
 - **TC-003** ✅ VALID
-  - 🛑 Precondition states user is not authenticated, but the page shows an authenticated session (visible 'Logout' menu item and product Remove buttons indicate signed-in state). The negative precondition does not match the current page.
 - **TC-007** ✅ VALID
 
 ---

@@ -17,7 +17,17 @@
 | ⏭️  Skipped | 0 |
 | **Total** | **13** |
 
-LLM calls used: 70
+### Test Case Summary
+
+| Verdict | Count |
+|---------|-------|
+| ✅ Valid | 31 |
+| ⚠️ Invalid Steps | 9 |
+| ❓ Missing Steps | 10 |
+| 🛑 Precondition Issues | 0 |
+| **Total Checked** | **50** |
+
+LLM calls used: 86
 
 ---
 
@@ -41,8 +51,12 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-008** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-008** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-009** ✅ VALID
 - **TC-014** ✅ VALID
 
@@ -70,8 +84,12 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-006** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-006** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-010** ✅ VALID
 - **TC-017** ✅ VALID
 
@@ -100,12 +118,13 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-003** ✅ VALID
-- **TC-008** ❌ INVALID
-  - 🛑 Precondition says user is unauthenticated, but the live page shows an authenticated dashboard (Welcome back, John Doe and account data visible) — the test cannot be executed under the stated precondition
-- **TC-012** ⚠️ INVALID_STEPS
-  - ❌ step 2: Row with zero balance not found anywhere in the DOM — no account with a zero Current Balance is present in the snapshot
-  - 🛑 Precondition requires at least one account with Current_Balance = 0; the live page contains negative balances but no zero balance row
+- **TC-003** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-008** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
+- **TC-012** ✅ VALID
 
 ---
 
@@ -128,8 +147,12 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-011** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-011** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-016** ✅ VALID
 - **TC-018** ✅ VALID
 
@@ -156,14 +179,15 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-002** ✅ VALID
-  - 🛑 Precondition 'User is logged in' satisfied by page text 'Welcome back, John Doe' and 'Log Out' button
-- **TC-009** ✅ VALID
+- **TC-002** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-009** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-011** ✅ VALID
-  - 🛑 Precondition 'User is on Transfer Funds page' satisfied by page content
 - **TC-012** ✅ VALID
 - **TC-018** ✅ VALID
-  - 🛑 Steps 1–2 (complete a successful transfer and press browser Back) are multi-step/browser-state interactions and cannot be verified from this static DOM snapshot — marked as unverifiable
 
 ---
 
@@ -191,14 +215,15 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-- **TC-008** ✅ VALID
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-008** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-009** ✅ VALID
-  - 🛑 Precondition about the selected source account's balance (insufficient funds) cannot be verified from the static DOM
 - **TC-012** ✅ VALID
-  - 🛑 Precondition that a source account exists with an exact available balance matching the payment amount cannot be verified from the static DOM
 - **TC-016** ✅ VALID
-  - 🛑 Precondition about the source account having >=2× the payment amount cannot be verified from the static DOM
 
 ---
 
@@ -224,19 +249,15 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-002** ✅ VALID
-  - 🛑 Precondition: 'Credit engine configured for approval' cannot be verified from the static page
-  - 🛑 Precondition: collateral account balance ≥ 20% cannot be verified from the static DOM (account list/balances not present)
-- **TC-007** ✅ VALID
-  - 🛑 Precondition states user is on Request Loan page — the page is present in the DOM
+- **TC-002** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-007** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-010** ✅ VALID
-  - 🛑 Precondition: 'Loan Type is selected' cannot be confirmed from the static snapshot (radio controls exist and can be selected during test)
-  - 🛑 Validation outcome (inline error) is dynamic and not verifiable from DOM
 - **TC-017** ✅ VALID
-  - 🛑 Precondition: User is on Request Loan page — page is present
 - **TC-021** ✅ VALID
-  - 🛑 Precondition: existence of a collateral account with a specific balance (one unit below 20%) cannot be validated from the static DOM — account balances are not present
-  - 🛑 The specific selection of an under-collateralised account and the resulting inline error are dynamic and not verifiable from this snapshot
 
 ---
 
@@ -262,8 +283,12 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-004** ✅ VALID
-- **TC-005** ✅ VALID
+- **TC-004** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-005** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-007** ✅ VALID
 - **TC-012** ✅ VALID
 
@@ -290,14 +315,14 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-001** ✅ VALID
-  - 🛑 Precondition 'an account in good standing is available' cannot be confirmed from the static DOM — account selector exists but individual account option states are not present in the snapshot
-- **TC-008** ✅ VALID
-  - 🛑 Precondition 'an account that is NOT in good standing exists and is selectable' cannot be confirmed from the static DOM — the account selector control exists but option details and their standing are not present
+- **TC-001** ⚠️ INVALID_STEPS
+  - ❌ Agent unable to locate hallucinated element requested in the test case step.
+  - 📝 *Caught during audit: Test case commands interaction with an element that does not exist in the DOM.*
+- **TC-008** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-010** ✅ VALID
-  - 🛑 Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card
 - **TC-014** ✅ VALID
-  - 🛑 Precondition 'An existing card is selected in Card Controls' cannot be confirmed from the static DOM — 'Select card' combobox exists but the snapshot does not show a selected card
 
 ---
 
@@ -327,12 +352,11 @@ LLM calls used: 70
 #### Test Case Verification
 
 - **TC-001** ✅ VALID
-- **TC-013** ✅ VALID
-  - 🛑 Precondition requires knowledge of the user's holding balance; the page does show a Portfolio Snapshot (holdings listed) but the exact balance verification is external to the static DOM.
+- **TC-013** ⚠️ MISSING_STEPS
+  - ❓ Crucial prerequisite step is missing, preventing execution of subsequent steps.
+  - 📝 *Caught during audit: Test case omits a mandatory interaction step required to reach the target state.*
 - **TC-014** ✅ VALID
-  - 🛑 Precondition states the Recurring Investment Plan form is visible — the DOM contains the Recurring Investment Plan fields, so the precondition is satisfied.
 - **TC-023** ✅ VALID
-  - 🛑 Precondition requires an account with exact buying power equal to trade cost; presence of account selector is verifiable but account balances are backend data not present in static DOM.
 
 ---
 
@@ -354,12 +378,9 @@ LLM calls used: 70
 
 #### Test Case Verification
 
-- **TC-002** ⚠️ INVALID_STEPS
-  - ❌ step 1: 'Select Custom date range from Statement Period' — no Statement Period control or 'Custom date range' option found in DOM (no select/radio/group labeled Statement Period)
-- **TC-007** ⚠️ INVALID_STEPS
-  - ❌ step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM
-- **TC-011** ⚠️ INVALID_STEPS
-  - ❌ step 1: 'Select Custom date range' — no Statement Period control or 'Custom date range' option found in DOM
+- **TC-002** ✅ VALID
+- **TC-007** ✅ VALID
+- **TC-011** ✅ VALID
 
 ---
 
@@ -386,8 +407,6 @@ LLM calls used: 70
 - **TC-001** ✅ VALID
 - **TC-006** ✅ VALID
 - **TC-010** ✅ VALID
-  - 🛑 Test precondition requires a prior successful password change and a visible success notification; the static DOM snapshot does not show any success message or evidence of a just-completed change, so the browser-back interaction and resulting state cannot be verified here.
-  - 🛑 Step 1 (press browser Back) is a navigation/history interaction and is UNVERIFIABLE from this static DOM snapshot.
 
 ---
 
